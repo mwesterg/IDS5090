@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+!.env.example
+
+# Real student lists and credentials; keep the example list tracked.
+usuarios.txt
+users.txt
+credenciales-*.tsv
+*.ovpn
+*.key
+*.pem
+*.p12
+*.pfx
+pki/

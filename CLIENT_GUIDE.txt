@@ -1,0 +1,158 @@
+IDS LAB SERVER - STUDENT CONNECTION GUIDE
+=========================================
+
+Use this guide after the administrator confirms your access is ready.
+You will connect to your own Linux desktop on the lab PC and run training
+there. Your laptop displays the desktop; the server performs the computation.
+
+1. INFORMATION FROM YOUR ADMINISTRATOR
+--------------------------------------
+Obtain your individual .ovpn profile, its private-key passphrase, your lab Linux
+username/password, the lab SSH host-key fingerprint and the support contact.
+These are private credentials; do not share your profile or passwords.
+The public server is the VPN endpoint. The X2Go destination is the lab PC at
+10.77.0.2, not the public server. No OpenVPN account website login is needed.
+
+2. INSTALL THE CLIENT APPLICATIONS
+----------------------------------
+Install an OpenVPN-compatible client and X2Go Client on your own computer.
+Use your administrator's supported OpenVPN client for your OS; OpenVPN Connect
+is available from https://openvpn.net/client/.
+X2Go instructions: https://wiki.x2go.org/doku.php/doc:installation:x2goclient
+On macOS follow X2Go's XQuartz requirements before connecting.
+On Ubuntu/Debian, OpenVPN and X2Go Client are available as packages:
+
+    sudo apt update
+    sudo apt install openvpn x2goclient
+
+These commands are for your own computer, not the lab PC.
+
+3. CONNECT OPENVPN
+-------------------
+Import your individual .ovpn file into the OpenVPN client and connect.
+Enter the VPN private-key passphrase supplied by the administrator if prompted.
+On Linux, you can also connect from a terminal with:
+
+    sudo openvpn --config /path/to/YOUR_PROFILE.ovpn
+
+Keep that process running while using X2Go. Confirm that the client reports
+that it connected successfully. OpenVPN does not replace your normal Internet
+connection in this setup. Leave the VPN connected while using the lab.
+
+4. CREATE YOUR X2GO SESSION
+---------------------------
+Open X2Go Client and create a new session. Enter:
+
+    Session name: IDS Lab (or another name you recognize)
+    Host:         the lab PC VPN IP (10.77.0.2) supplied by the administrator
+    Login:        your assigned Linux username
+    SSH port:     22
+    Session type: XFCE
+
+Use password authentication. Leave SSH key, proxy and automatic-login options
+off unless the administrator specifically instructs you otherwise.
+
+Save the session and open it. On the first connection, compare the SSH
+host-key fingerprint with the administrator's trusted copy before accepting.
+If a saved key unexpectedly changes later, contact the administrator before
+accepting the replacement.
+
+Enter your Linux password when prompted. It is separate from your VPN private-key passphrase.
+The remote XFCE desktop should appear.
+
+5. CHECK YOUR ACCOUNT AND GPU ACCESS
+------------------------------------
+Open a terminal inside the remote desktop and run:
+
+    whoami
+    echo "$HOME"
+    nvidia-smi
+
+The username should be yours and the home directory should normally be
+/home/YOUR_USERNAME. If you see another person's account, stop and report it.
+
+Follow the administrator's instructions to activate the course Python
+environment. In that environment, you can check PyTorch with:
+
+    python -c "import torch; print('CUDA available:', torch.cuda.is_available())"
+
+If torch is missing, ask for the correct environment or the course's install
+instructions. If CUDA is unavailable or nvidia-smi fails, contact the
+administrator. Do not install or change NVIDIA drivers on the server.
+
+Keep code, datasets and outputs in your own home directory or the shared
+course location assigned to you. Do not use sudo on the server. Install
+Python packages only in your own or the course-approved virtual environment.
+
+The GPU is shared. Follow the booking rules, check current usage with
+nvidia-smi, and ask before starting a large job. An idle-looking GPU is not
+automatically permission to use all available memory. Stop only your own jobs.
+
+6. TRANSFER FILES
+-----------------
+If you need to copy files, use an SFTP client with:
+
+    Protocol: SFTP
+    Host:     the same lab PC VPN IP (10.77.0.2)
+    Port:     22
+    Username: your Linux username
+    Password: your Linux password
+
+On a computer with the scp command, an example upload is:
+
+    scp training.py YOUR_USERNAME@10.77.0.2:~/
+
+Replace YOUR_USERNAME with your assigned Linux username. Run this
+upload command on your own computer, where training.py is stored. OpenVPN
+must be connected. Do not send the whole class your password to share files.
+
+7. FINISH OR RESUME YOUR SESSION
+--------------------------------
+Save your work before disconnecting. Use X2Go's Suspend option if you intend
+to resume the same desktop. Suspending a desktop does not stop training or
+release GPU memory; stop your jobs first if your allocated time has ended.
+
+Use the desktop's Log Out option or X2Go's Terminate session option when you
+are finished and want to close that desktop and its applications. A dropped
+connection is not a guarantee that a training job stopped, or that it will
+survive a reboot. Save model checkpoints and follow the course's instructions
+for long-running jobs.
+
+To reconnect, connect OpenVPN first, then open the saved X2Go session. Resume
+your existing desktop when offered instead of creating unnecessary sessions.
+
+To change your Linux password, run passwd in the remote terminal and follow
+its prompts. This changes only the Linux password, not your VPN private-key passphrase.
+
+8. IF SOMETHING GOES WRONG
+--------------------------
+Connection timeout:
+  Confirm your Internet connection, that OpenVPN is connected, that you
+  imported your own profile, and that the X2Go host is 10.77.0.2.
+  Ask whether the server is online and your access is still active.
+
+Incorrect password / authentication failure:
+  Use the Linux username rather than an email address. Check keyboard layout
+  and Caps Lock. Ask the administrator for a reset if needed; do not send
+  passwords in a troubleshooting message.
+
+Black screen or desktop does not start:
+  Confirm the session type is XFCE. On macOS, check the XQuartz setup. Report
+  the error rather than repeatedly creating more sessions.
+
+CUDA unavailable / out of GPU memory:
+  Confirm the selected Python environment. Ask about other scheduled jobs.
+  Reduce your workload if appropriate; never terminate another student's job.
+
+Slow display:
+  Try a smaller desktop resolution and a stable connection. The connection
+  passes through the public VPN hub; slow display does not by itself mean slow GPU training.
+
+When contacting support, include your Linux username, your operating system,
+the approximate time, the step that failed, and the exact error text. Do not
+include passwords, private keys or invitation links in a public report.
+
+Official references:
+  https://openvpn.net/client/
+  https://wiki.x2go.org/doku.php/doc:installation:x2goclient
+  https://wiki.x2go.org/doku.php/doc:usage:x2goclient

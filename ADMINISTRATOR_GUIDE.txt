@@ -1,0 +1,64 @@
+IDS LAB - ADMINISTRATOR GUIDE
+=============================
+
+Current deployment: public OpenVPN hub + outbound lab PC VPN client.
+Tailscale is blocked on the institutional network.
+
+Follow HUB_DEPLOYMENT.md for the complete installation and migration procedure.
+Read the firewall and subnet requirements before running the installers.
+
+PUBLIC SERVER (Ubuntu 22.04/24.04 / Debian 11+, OpenVPN 2.5+):
+    sudo bash install_hub.sh init 152.74.19.95 443 tcp
+    sudo bash install_hub.sh add-student alumno01
+
+Use a real public IP/DNS name and a free, reachable port. TCP 443 carries OpenVPN,
+not HTTPS; the institution must permit that traffic. The hub issues certificates
+only; no student Linux accounts or GPU software are installed there.
+
+Transfer only /root/ids-vpn-profiles/labpc.ovpn securely to the lab PC.
+Keep the CA, private keys and other students' profiles private.
+
+LAB PC (Pop!_OS/Ubuntu 22.04/24.04):
+    cd ~/IDS_remote
+    sudo bash install_lab.sh /secure/path/labpc.ovpn
+    cp usuarios.example.txt usuarios.txt
+    # Edit usuarios.txt with the real usernames.
+    bash usr_mgr.sh --linux-only --import usuarios.txt --dry-run
+    sudo bash usr_mgr.sh --linux-only --import usuarios.txt
+
+The lab PC is 10.77.0.2 on the VPN. Students connect to the hub with their own
+OpenVPN profiles, then use X2Go: host 10.77.0.2, SSH port 22, session XFCE and
+their lab Linux username/password. The VPN key passphrase and Linux password
+are separate. Deliver credentials individually; never distribute the TSV.
+
+Existing student accounts remain on the lab. The lab installer backs up and
+migrates only an unchanged installer-generated Tailscale SSH snippet. Custom
+SSH configurations require manual review. It does not stop existing VPNs;
+retire unused Tailscale/local OpenVPN services after testing the new path.
+
+Operate accounts on the LAB PC:
+    sudo bash usr_mgr.sh --linux-only
+
+Menu: 1 add, 2 list, 3 suspend, 4 reactivate, 5 delete/archive, 6 import, 0 exit.
+Passwords can be reset with sudo passwd USERNAME. The original credentials TSV
+is not updated by later password changes. Homes are archived on deletion.
+
+Revoke VPN access separately on the PUBLIC HUB:
+    sudo bash install_hub.sh revoke alumno01
+
+This republishes the CRL and restarts the hub, disconnecting all clients briefly.
+Linux suspension alone does not revoke VPN access. VPN revocation alone does
+not suspend a Linux account.
+
+Renew the 180-day CRL before expiry (CA passphrase required):
+    sudo bash install_hub.sh renew-crl
+    sudo bash install_hub.sh status
+
+Keep encrypted off-server CA backups. Do not initialize another CA to repair
+an existing installation. Consult HUB_DEPLOYMENT.md for partial-failure recovery,
+firewall persistence, logs, client isolation and end-to-end validation.
+
+Before class use, test two students from outside the lab LAN. Verify their own
+HOME/DISPLAY, SSH host-key fingerprints, SFTP and GPU execution using README.md.
+The installers do not install NVIDIA/CUDA/PyTorch, allocate GPU quotas or schedule
+jobs. Keep the lab powered on and coordinate shared GPU usage.

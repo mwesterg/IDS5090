@@ -1,0 +1,5 @@
+# Un usuario por línea; reemplaza estos ejemplos por los alumnos reales.
+# Se omiten líneas vacías y comentarios. No incluyas contraseñas.
+alumno01
+alumno02
+alumno03
