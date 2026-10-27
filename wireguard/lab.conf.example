@@ -1,13 +1,13 @@
 # TEMPLATE ONLY. Get a dedicated lab peer from the existing VPN administrator.
-# Replace every placeholder, including addresses/subnets, before validation.
-# 10.66.0.0/24 is an example, NOT the assigned VPN network.
+# Fixed lab IPv4 is 10.8.0.100; supply the real private/public keys.
+# IPv4-only explicit-route example; the private supplied profile also has IPv6.
 [Interface]
 PrivateKey = REPLACE_WITH_LAB_PRIVATE_KEY
-Address = 10.66.0.2/32
+Address = 10.8.0.100/32
 
 [Peer]
 PublicKey = REPLACE_WITH_PUBLIC_SERVER_PUBLIC_KEY
-Endpoint = REPLACE_WITH_PUBLIC_SERVER_HOST:51820
+Endpoint = 152.74.19.95:10275
 # Must cover the real student source subnet for the lab's return traffic.
-AllowedIPs = 10.66.0.0/24
+AllowedIPs = 10.8.0.0/24
 PersistentKeepalive = 25

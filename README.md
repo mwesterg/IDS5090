@@ -11,9 +11,11 @@ El acceso previsto combina **WireGuard**, **OpenSSH** y **X2Go**, usando la VPN
 WireGuard que ya existe en el servidor público. El laboratorio inicia su conexión
 hacia ese servidor y no necesita redirección de puertos en su router.
 
-**Estado:** falta recibir y revisar la configuración real de WireGuard. Los cambios
-preparan la instalación y las guías; no se ha activado ni verificado un túnel, ni se
-han asignado IP o claves reales.
+**Dirección fija del laboratorio:** `10.8.0.100`. X2Go y SFTP usan
+`10.8.0.100:22`. El perfil privado `IDS_5090.conf` ya está disponible localmente y
+configurado con esa IPv4. El endpoint público de WireGuard es
+`152.74.19.95:10275/UDP`. Hay que verificar la dirección activa, el handshake y el
+acceso desde un estudiante antes de abrir el servicio al curso.
 
 ## Arquitectura
 
@@ -26,9 +28,9 @@ han asignado IP o claves reales.
                            │
                     Servidor público
                     WireGuard existente
-                    Endpoint/puerto por confirmar
+                    152.74.19.95:10275/UDP
 
- Escritorio remoto: estudiante → VPN → IP WireGuard del laboratorio:22
+ Escritorio remoto: estudiante → VPN → 10.8.0.100:22
  Cómputo y almacenamiento de trabajo: PC del laboratorio
 ```
 
@@ -52,8 +54,9 @@ que un estudiante pueda llegar al PC del laboratorio.
   al endpoint real de WireGuard.
 - **Estudiantes:** WireGuard y X2Go Client. En macOS, seguir los requisitos de
   XQuartz indicados por X2Go.
-- **Red:** confirmar IP del laboratorio, CIDR de origen que verá SSH y ausencia de
-  solapamientos con LAN u otras VPN. Los valores de los ejemplos no son definitivos.
+- **Red:** reservar `10.8.0.100` para el laboratorio, comprobar el origen de los
+  estudiantes en `10.8.0.0/24` y evitar solapamientos con LAN u otras VPN. Si el
+  servidor aplica SNAT, revisar el CIDR que realmente ve SSH.
 
 Los instaladores preparan acceso remoto. El driver NVIDIA, CUDA y el entorno de
 entrenamiento se comprueban por separado en el laboratorio.
@@ -79,42 +82,43 @@ Este paso instala WireGuard y los paquetes SSH/X2Go/XFCE. No instala un perfil,
 no cambia la red SSH de alumnos y no inicia WireGuard. La instalación de paquetes
 puede iniciar servicios de la distribución. No se modifica el driver GPU.
 
-### 2. Validar e instalar cuando llegue el archivo real
+### 2. Conectar con el perfil actual del laboratorio
 
-Obtén un perfil exclusivo para el laboratorio y el CIDR de origen real de los
-estudiantes. Sustituye los marcadores de estos comandos por los valores asignados:
-
-```text
-bash install_wireguard.sh --check-config /ruta/privada/lab.conf --student-network CIDR_REAL_ALUMNOS
-sudo bash install_wireguard.sh --install /ruta/privada/lab.conf --student-network CIDR_REAL_ALUMNOS
-```
-
-La validación local no necesita root ni muestra claves. La instalación guarda el
-perfil como `/etc/wireguard/ids-wg.conf`, root:root, modo 600; configura SSH/X2Go y
-el acceso a las cuentas Linux. Se respalda y migra únicamente un snippet
-SSH generado por el instalador, sin modificaciones manuales. La migración puede
-afectar el acceso de alumnos por una VPN anterior: hazla con acceso local.
-
-El instalador conserva configuraciones diferentes y rechaza interfaces ya activas.
-Las rutas por defecto, hooks de shell y routing personalizado requieren revisión;
-no se eliminan automáticamente del archivo. Un perfil con DNS necesita integración
-`resolvconf`. Revisa esos requisitos antes de ejecutar `--install`.
-
-### 3. Activar después de revisar rutas y firewalls
+El archivo privado `IDS_5090.conf` se mantiene fuera de Git. En el laboratorio:
 
 ```bash
-sudo systemctl enable --now wg-quick@ids-wg
-sudo bash install_wireguard.sh --status
+cd ~/IDS_remote
+chmod 600 IDS_5090.conf
+sudo wg-quick up ./IDS_5090.conf
+ip -4 address show dev IDS_5090
+sudo wg show IDS_5090
 ```
 
-`--install` no arranca ni habilita la VPN; la activación es un paso separado.
-`--status` comprueba el servicio, la interfaz y la antigüedad de los handshakes.
-Un handshake reciente demuestra conectividad al servidor público, pero todavía
-hay que probar el acceso estudiante → laboratorio por TCP 22.
+Si el túnel ya está activo, no vuelvas a ejecutar `up`. Para recargar un cambio
+al perfil, usa primero `sudo wg-quick down ./IDS_5090.conf` y luego `up`, desde
+una terminal local. La interfaz debe mostrar `10.8.0.100/32` y un handshake
+reciente. Los clientes usan `10.8.0.100` como host X2Go y SFTP.
 
-Consulta [WIREGUARD_DEPLOYMENT.md](WIREGUARD_DEPLOYMENT.md) para los detalles de
-la VPN existente, firewall, migración, DNS, rutas y recuperación. Los scripts no
-reconfiguran el servidor público ni detienen las VPN anteriores.
+El perfil actual incluye `::/0`: su tráfico IPv6 utiliza la VPN, además de las
+rutas IPv4 de `10.8.0.0/24`. El validador del instalador rechaza rutas por defecto;
+para este perfil revisado se utiliza `wg-quick` directamente. No borres rutas ni
+claves para hacer pasar la validación. Mantén `PersistentKeepalive = 25`.
+
+### 3. Preparar SSH/X2Go para los estudiantes
+
+```bash
+sudo bash -c 'source ./lib/remote_access.sh; configure_student_network 10.8.0.0/24'
+```
+
+Este paso configura SSH/X2Go para el origen VPN indicado. Conserva las políticas
+personalizadas y respalda/migra únicamente snippets generados por el instalador.
+Si hay SNAT, adapta el CIDR al origen real que ve el laboratorio. El firewall debe
+permitir TCP 22 hacia `10.8.0.100` y el servidor público debe reenviar el tráfico
+entre peers. Un handshake confirma conexión al servidor, no acceso de alumnos.
+
+Consulta [WIREGUARD_DEPLOYMENT.md](WIREGUARD_DEPLOYMENT.md) para las rutas,
+firewall, diagnóstico y la opción de instalación administrada con perfiles de
+rutas explícitas. No actives dos interfaces a la vez con el mismo peer/perfil.
 
 ## Alta de estudiantes
 
@@ -160,7 +164,7 @@ conservando las plantillas.
 
    | Campo | Valor |
    | --- | --- |
-   | Host | IP WireGuard real del laboratorio, por confirmar |
+   | Host | `10.8.0.100` |
    | Puerto SSH | `22` |
    | Usuario | Cuenta Linux asignada |
    | Tipo de sesión | `XFCE` |
@@ -169,7 +173,7 @@ conservando las plantillas.
 3. Verificar la huella SSH entregada por el administrador.
 4. Mantener WireGuard conectado durante la sesión.
 
-El destino X2Go y SFTP es el laboratorio, no la IP pública del servidor VPN.
+El destino X2Go y SFTP es `10.8.0.100:22`. La IP pública se usa para WireGuard.
 La [guía de clientes](CLIENT_GUIDE.txt) incluye instalación, transferencia de
 archivos, suspensión de sesiones y diagnóstico.
 

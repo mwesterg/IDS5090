@@ -3,12 +3,14 @@ IDS LAB - ADMINISTRATOR GUIDE (WIREGUARD)
 
 Lab administrator contact: mwestermeyer@udec.cl
 
-Planned deployment: existing public WireGuard server, dedicated outbound lab
+Deployment: existing public WireGuard server, dedicated outbound lab
 peer, individual student peers, and SSH/X2Go/XFCE on the GPU lab PC.
 
-Status: the real WireGuard configuration is still pending. No tunnel or real
-VPN address has been activated or verified by this change. Keep the lab locally
-accessible while changing network access.
+Fixed lab IPv4: 10.8.0.100 (X2Go and SFTP, TCP 22).
+Public WireGuard endpoint: 152.74.19.95:10275/UDP.
+Private lab profile: ~/IDS_remote/IDS_5090.conf, excluded from Git.
+Verify the live interface and student access after changes; the saved address
+does not by itself prove a working connection. Keep local access during changes.
 
 1. PREPARE THE LAB NOW
 ----------------------
@@ -31,10 +33,10 @@ In the public server's WireGuard GUI, create a dedicated lab peer and export
 its .conf privately. Create a separate peer/profile for every student device.
 The lab installers do not require public-server shell access. Record:
 
-    Public server endpoint/UDP port: ___________________
-    Lab VPN IP: _______________________________________
+    Public server endpoint/UDP port: 152.74.19.95:10275/UDP
+    Lab VPN IP: 10.8.0.100 (reserve exclusively for the GPU PC)
     Student VPN source CIDR seen by lab SSH: ___________
-    Lab interface name: ids-wg (default)
+    Current lab interface name: IDS_5090 (from IDS_5090.conf)
     Student peer provisioning/revocation contact: ______
 
 Do not reuse a personal or student profile for the lab. Every device needs a
@@ -50,55 +52,59 @@ not the original student addresses. The lab installer cannot configure the hub. 
 firewall controls, ask its administrator to verify existing rules. Opening the
 WireGuard endpoint port alone does not prove student-to-lab reachability.
 
-3. VALIDATE AND INSTALL AFTER THE PROFILE ARRIVES
-------------------------------------------------
-The following commands contain placeholders; replace both the file path and
-REAL_STUDENT_SOURCE_CIDR with the assigned values:
+3. CONNECT THE CURRENT LAB PROFILE
+-----------------------------------
+The private IDS_5090.conf uses Address=10.8.0.100/32. Keep this address consistent
+with the lab peer in the public GUI. Never assign 10.8.0.100 to a student.
+Use the current profile directly from a local administrator terminal:
 
-    bash install_wireguard.sh --check-config /secure/lab.conf --student-network REAL_STUDENT_SOURCE_CIDR
-    sudo bash install_wireguard.sh --install /secure/lab.conf --student-network REAL_STUDENT_SOURCE_CIDR
+    cd ~/IDS_remote
+    chmod 600 IDS_5090.conf
+    sudo wg-quick up ./IDS_5090.conf
 
-Validation requires no root and does not print keys or execute config commands.
-It checks basic profile structure, keys, endpoints and student return-route
-coverage. Full-tunnel routes, hooks/custom routing and SaveConfig=true require
-manual review; do not strip them blindly. DNS settings need resolvconf integration.
-Set PersistentKeepalive=25 on the lab's hub peer for idle NAT reachability unless
-the VPN administrator specifies another interval.
+If already active, do not run up again. To reload a changed profile:
 
-Installation stores /etc/wireguard/ids-wg.conf root-owned, mode 600. It refuses
-a different existing profile and refuses a live target interface. It prepares
-SSH/X2Go, migrates only an unchanged installer-generated student SSH snippet
-with a backup, and prepares Linux account access. Custom SSH policies
-require review. The new source CIDR can affect access over old VPN paths.
-The installer does NOT start or enable WireGuard and does not change firewall
-policy. Inspect old VPN routes for overlaps before activating this one.
+    sudo wg-quick down ./IDS_5090.conf
+    sudo wg-quick up ./IDS_5090.conf
 
-4. ACTIVATE LOCALLY AND VERIFY
+These steps interrupt current VPN sessions; perform them locally.
+The profile includes ::/0, so IPv6 traffic uses the VPN. Its DNS settings need
+working resolvconf integration. Keep PersistentKeepalive=25 for idle reachability.
+The installer's --check-config/--install path rejects default routes; the current
+reviewed profile is started with standard wg-quick instead. Templates show the
+IPv4-only explicit-route alternative, not a replacement for the private profile.
+
+4. VERIFY AND PREPARE SSH/X2GO
 ------------------------------
-Only after reviewing the supplied profile, routing and firewall rules:
+    ip -4 address show dev IDS_5090
+    sudo wg show IDS_5090
 
-    sudo systemctl enable --now wg-quick@ids-wg
-    sudo bash install_wireguard.sh --status
+Expect 10.8.0.100/32 on the interface and a recent handshake. Seeing a peer in
+the public GUI or seeing an active interface does not prove student access.
+Prepare SSH/X2Go for the configured VPN source subnet:
 
-For another interface name, pass --interface NAME at installation/status and
-use wg-quick@NAME. No recent handshake makes --status return a nonzero result.
-A recent handshake proves only connectivity to the hub. Test student -> lab
-TCP 22 from outside the lab LAN before offering access to the class.
+    sudo bash -c 'source ./lib/remote_access.sh; configure_student_network 10.8.0.0/24'
 
-The lab firewall must allow the actual student source CIDR to the lab VPN IP
+This backs up/migrates only unchanged installer-managed SSH snippets and validates
+before reload. Custom policies need review. If the server uses SNAT, use the
+actual source CIDR seen by the lab instead. Test student -> 10.8.0.100:22 from
+outside the lab LAN. Keep current administrative access while changing policy.
+
+The lab firewall must allow the actual student source CIDR to 10.8.0.100
 on TCP 22 over this WireGuard interface. Preserve administrative access.
 The public hub needs a forwarding rule; allowing SSH to the hub itself is not
 enough. Isolate students from each other according to the lab's policy.
 
 Diagnostics:
-    sudo systemctl status wg-quick@ids-wg ssh x2goserver --no-pager
-    sudo journalctl -u wg-quick@ids-wg -n 50 --no-pager
+    sudo systemctl status ssh x2goserver --no-pager
+    sudo wg show IDS_5090
+    sudo journalctl -u ssh -u x2goserver -n 50 --no-pager
     ip -brief address
     ip route
     sudo sshd -t
 
-To stop this tunnel, including boot activation:
-    sudo systemctl disable --now wg-quick@ids-wg
+To stop the current manually started tunnel:
+    sudo wg-quick down ./IDS_5090.conf
 
 Stopping it does not restore old SSH rules or remove the private profile. Do
 not publish full profiles, wg showconf output or wg dump output: they may expose
@@ -144,7 +150,7 @@ does not terminate existing training processes on the lab.
 6. HANDOVER AND GPU VALIDATION
 ------------------------------
 Provide each student only their own VPN profile and Linux credentials, the
-actual lab VPN IP, SSH port 22, session XFCE, support contact and GPU schedule.
+fixed lab VPN IP 10.8.0.100, SSH port 22, session XFCE, support contact and GPU schedule.
 Give them CLIENT_GUIDE.txt plus a trusted SSH host-key fingerprint:
 
     sudo ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub

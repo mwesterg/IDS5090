@@ -7,24 +7,29 @@ there. Your laptop displays the desktop; the server performs the computation.
 
 1. INFORMATION FROM YOUR ADMINISTRATOR
 --------------------------------------
-The planned connection method is WireGuard VPN + X2Go. The administrator is
-still preparing the actual VPN profiles; examples in the repository are not
-usable credentials and access is not yet verified.
+The connection method is WireGuard VPN + X2Go. The fixed GPU PC address is
+10.8.0.100. Each student still needs their own VPN profile and Linux account
+from the administrator before connecting.
 
 Obtain your individual WireGuard .conf file, your lab Linux username/password,
-the lab's actual WireGuard VPN IP, its SSH host-key fingerprint, and the support
-contact. Each device needs its own assigned VPN address and key. Do not share
+its SSH host-key fingerprint and the support contact. Each device needs its own assigned VPN address and key. Do not share
 or reuse the lab's configuration or another student's configuration.
 
-    Lab WireGuard VPN IP: _____________________________
+    Lab WireGuard VPN IP: 10.8.0.100
     Linux username: ___________________________________
     Initial Linux password: delivered privately
     SSH fingerprint: __________________________________
     Administrator/support contact: mwestermeyer@udec.cl
     GPU schedule: _____________________________________
 
-The public server is the VPN endpoint. The X2Go destination is the LAB PC's
-assigned VPN IP. The administrator provides this address after VPN setup.
+WireGuard connects to the public server at 152.74.19.95:10275/UDP using the
+Endpoint in your assigned profile. X2Go and SFTP connect to 10.8.0.100:22 inside
+the VPN. Your own student Address must be unique: do not assign yourself
+10.8.0.100, which belongs exclusively to the GPU PC.
+
+Your profile's AllowedIPs must include 10.8.0.100/32 or a containing route such
+as 10.8.0.0/24. The administrator supplies this setting; do not replace your
+student profile with the GPU PC's profile.
 
 WireGuard uses the key in your profile to authenticate the VPN; X2Go uses your
 Linux username/password.
@@ -69,7 +74,7 @@ Do not edit assigned addresses, keys or AllowedIPs without coordination.
 Open X2Go Client and create a new session. Enter:
 
     Session name: IDS Lab (or another name you recognize)
-    Host:         the actual lab WireGuard VPN IP supplied by the administrator
+    Host:         10.8.0.100
     Login:        your assigned Linux username
     SSH port:     22
     Session type: XFCE
@@ -118,16 +123,16 @@ automatically permission to use all available memory. Stop only your own jobs.
 If you need to copy files, use an SFTP client with:
 
     Protocol: SFTP
-    Host:     the same lab WireGuard VPN IP used for X2Go
+    Host:     10.8.0.100
     Port:     22
     Username: your Linux username
     Password: your Linux password
 
 On a computer with the scp command, an example upload is:
 
-    scp training.py YOUR_USERNAME@LAB_WG_IP:~/
+    scp training.py YOUR_USERNAME@10.8.0.100:~/
 
-Replace YOUR_USERNAME and LAB_WG_IP with your assigned username and lab VPN IP. Run this
+Replace YOUR_USERNAME with your assigned Linux username. Run this
 upload command on your own computer, where training.py is stored. WireGuard
 must be connected. Do not send the whole class your password to share files.
 
@@ -158,7 +163,7 @@ its prompts. This changes only the Linux password, not the keys in your WireGuar
 --------------------------
 Connection timeout:
   Confirm your Internet connection, that WireGuard has a recent handshake, that you
-  imported your own profile, and that the X2Go host is the assigned lab WireGuard IP.
+  imported your own profile, and that the X2Go host is 10.8.0.100.
   Ask whether the server is online and your access is still active.
 
 Incorrect password / authentication failure:

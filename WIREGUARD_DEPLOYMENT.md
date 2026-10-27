@@ -2,9 +2,10 @@
 
 Lab administrator contact: [mwestermeyer@udec.cl](mailto:mwestermeyer@udec.cl).
 
-WireGuard is the current planned access method. The public VPN already exists;
-its real configuration has **not yet been supplied**. No WireGuard service,
-address, route, key or firewall change has been applied by this work.
+The lab's fixed IPv4 address is **10.8.0.100**; X2Go and SFTP use TCP 22 there.
+The public VPN endpoint is **152.74.19.95:10275/UDP**. The private local profile
+`IDS_5090.conf` has been supplied and updated to `10.8.0.100/32`. Runtime address,
+handshake and student-to-lab access must still be checked after reconnecting.
 
 ```text
 Student: individual WireGuard peer + X2Go
@@ -12,7 +13,7 @@ Student: individual WireGuard peer + X2Go
        Existing public WireGuard server
        (forwards permitted student -> lab traffic)
                  |
-Lab PC: dedicated outbound WireGuard peer + OpenSSH + XFCE + GPU
+Lab PC: 10.8.0.100:22 + OpenSSH + XFCE + GPU
 ```
 
 The lab and students connect out to the public server. The lab router needs no
@@ -21,6 +22,43 @@ WireGuard endpoint; UDP on a chosen port is not HTTPS even if its number is 443.
 A successful WireGuard connection on some other device does not prove UDP is
 allowed from the lab network.
 
+## Current profile: connect and verify
+
+Run locally on the GPU PC. If the interface is already active, inspect it rather
+than running `up` twice; use `down` before `up` only when reloading changes.
+
+```bash
+cd ~/IDS_remote
+chmod 600 IDS_5090.conf
+sudo wg-quick up ./IDS_5090.conf
+ip -4 address show dev IDS_5090
+sudo wg show IDS_5090
+```
+
+The active IPv4 must be `10.8.0.100/32`. A recent handshake confirms connectivity
+to the public server; test X2Go from a student device separately. To disconnect:
+
+```bash
+sudo wg-quick down ./IDS_5090.conf
+```
+
+The current profile includes `::/0`, so IPv6 traffic is routed through the VPN.
+The installer below intentionally rejects default routes. Use standard `wg-quick`
+for this reviewed profile, keeping keys and IPv6 assignments consistent with the
+GUI. Keep `PersistentKeepalive = 25` and working `resolvconf` for its DNS settings.
+The explicit-route templates are a separate IPv4-only example, not a replacement
+for the supplied profile. Do not activate two interfaces with the same peer.
+
+Prepare student SSH/X2Go access for the configured VPN network:
+
+```bash
+sudo bash -c 'source ./lib/remote_access.sh; configure_student_network 10.8.0.0/24'
+```
+
+If the public server uses SNAT, first adjust the source CIDR to what SSH actually
+sees. All student X2Go/SFTP clients use `10.8.0.100:22`, and their WireGuard routes
+must include `10.8.0.100/32` (or a containing VPN route). Reserve `.100` for the lab.
+
 ## 1. Information needed before activation
 
 Obtain a **dedicated lab peer** from the VPN administrator. An existing personal
@@ -28,8 +66,9 @@ profile must not be reused simultaneously on the lab and student machines.
 Keep its private key and any preshared key outside Git and transfer it privately.
 Also establish:
 
-- The public server endpoint and UDP port.
-- The assigned lab VPN address(es), and individual addresses for each student/device.
+- Public endpoint: `152.74.19.95:10275/UDP`.
+- Lab IPv4: `10.8.0.100/32`; verify IPv6 assignments and individual addresses
+  for each student/device against their own GUI exports.
 - The exact student source CIDR that SSH on the lab will see. It can be the VPN
   network, a narrower student pool, or the hub's VPN address `/32` if it applies
   source NAT. The source CIDR is not the public server IP and not necessarily
@@ -39,8 +78,9 @@ Also establish:
 - Any DNS, full-tunnel routing or custom commands included in the supplied file.
 - Any conflicting routes/interfaces on this PC or student devices.
 
-No VPN subnet has been assigned in these scripts. `10.66.0.x` below is an illustrative topology only. The templates contain
-placeholders and cannot be activated as supplied.
+The lab uses `10.8.0.100` in the `10.8.0.0/24` VPN network. Student example
+addresses must be replaced with their unique GUI assignments. Templates still
+contain key placeholders and cannot be activated as supplied.
 
 ## 2. Prepare dependencies now (optional administrator action)
 
@@ -57,15 +97,15 @@ interface. Package installation may start the distribution's SSH/X2Go services.
 The NVIDIA driver, CUDA, PyTorch, existing accounts and GPU usage policy remain
 separate. These scripts support Pop!_OS/Ubuntu 22.04/24.04 on the lab.
 
-## 3. Review the supplied profile when available
+## 3. Optional explicit-route profile validation
 
 The lab uses standard `wg-quick` configuration. Examples for review:
 
 - `wireguard/lab.conf.example`: a lab peer connects to the existing public server.
 - `wireguard/student.conf.example`: a distinct student/device peer routes to the lab.
 
-Replace placeholders only after the actual network and peer assignments are
-known. Do not commit completed profiles. `.gitignore` excludes `.conf` files and
+Keep the fixed lab IPv4 `10.8.0.100`; replace key placeholders and example
+student addresses with their actual GUI assignments. Do not commit completed profiles. `.gitignore` excludes `.conf` files and
 backups, retaining `.conf.example` templates. Check `git status` before staging
 private files under any other name.
 
@@ -105,13 +145,13 @@ administrator must register each separate lab/student public key and address
 in the existing WireGuard instance. An example source-preserving IPv4 topology:
 
 ```text
-Hub VPN address:           10.66.0.1
-Lab peer VPN address:      10.66.0.2/32
-Student peer VPN address:  10.66.0.10/32
-Hub's lab-peer AllowedIPs: 10.66.0.2/32
-Hub's student AllowedIPs:  10.66.0.10/32 (one unique /32 per student/device)
-Lab's hub AllowedIPs:     10.66.0.0/24 (or narrower required routes)
-Student hub AllowedIPs:   10.66.0.2/32
+Hub VPN address:           HUB_VPN_IP (confirm in GUI)
+Lab peer VPN address:      10.8.0.100/32
+Student peer VPN address:  10.8.0.10/32 (illustrative; use GUI assignment)
+Hub's lab-peer AllowedIPs: 10.8.0.100/32
+Hub's student AllowedIPs:  10.8.0.10/32 (one unique /32 per student/device)
+Lab's hub AllowedIPs:     10.8.0.0/24 (or narrower required routes)
+Student hub AllowedIPs:   10.8.0.100/32
 ```
 
 The hub must forward between peers and permit student -> lab TCP 22 plus return
@@ -135,9 +175,12 @@ prove that students can reach the lab. These changes are not automated because i
 permissions and other users are not yet known. Connecting only the lab peer to
 a server that provides Internet access is insufficient for student -> lab access.
 
-## 5. Install the reviewed lab profile; activation is separate
+## 5. Optional managed installation for explicit-route profiles
 
-After dependency preparation and successful validation:
+This optional path uses interface `ids-wg` and the systemd status checker. It
+is separate from the current manually started `IDS_5090` interface and does not
+accept the current `::/0` route. Never run both with the same peer/profile.
+After dependency preparation and successful validation of an explicit-route profile:
 
 ```text
 sudo bash install_wireguard.sh --install /secure/path/lab.conf --student-network REAL_STUDENT_SOURCE_CIDR
@@ -208,7 +251,7 @@ credentials privately. Import passwords live under `/root/credenciales-alumnos/`
 Before distributing access, use a device outside the lab LAN to test:
 
 1. Student and lab have a recent handshake with the public server.
-2. Student can reach TCP 22 at the **lab's actual WireGuard IP**, including return
+2. Student can reach TCP 22 at the **lab IP 10.8.0.100**, including return
    traffic through the hub. Failure of ICMP ping alone does not prove SSH is blocked.
 3. X2Go connects with the assigned Linux user/password and session type XFCE.
 4. SSH host-key fingerprint matches the administrator's trusted copy.
