@@ -46,17 +46,42 @@ add_student() {
 
 list_students() {
   say "=== ALUMNOS DEL GRUPO $GROUP ==="
-  local members u count=0 pass
-  members="$(getent group "$GROUP" | cut -d: -f4 || true)"
+  local entry gid accounts members u count=0 pass status unavailable=0
+  if ! entry="$(getent group "$GROUP")"; then
+    say "El grupo $GROUP no existe o no se puede consultar."
+    return
+  fi
+  gid="$(printf '%s\n' "$entry" | cut -d: -f3)"
+  if ! accounts="$(getent passwd)"; then
+    accounts=''
+    say 'No se pudo consultar el registro de cuentas para incluir miembros por grupo principal.'
+  fi
+  members="$(
+    {
+      printf '%s\n' "$entry" | cut -d: -f4 | tr ',' '\n'
+      printf '%s\n' "$accounts" | awk -F: -v gid="$gid" '$4 == gid {print $1}'
+    } | LC_ALL=C sort -u
+  )"
   if [[ -z "$members" ]]; then say 'No hay cuentas registradas en el grupo.'; return; fi
   while IFS= read -r u; do
     [[ -n "$u" ]] || continue
     count=$((count + 1))
     pass='sin cuenta'
-    if id "$u" &>/dev/null; then pass="$(passwd -S "$u" | awk '{print $2}')"; fi
+    if id "$u" &>/dev/null; then
+      if status="$(passwd -S "$u" 2>/dev/null)"; then
+        pass="$(printf '%s\n' "$status" | awk '{print $2}')"
+        pass="${pass:-no disponible}"
+      else
+        pass='no disponible'
+        unavailable=1
+      fi
+    fi
     printf '%-22s contraseña=%s\n' "$u" "$pass"
-  done < <(printf '%s' "$members" | tr ',' '\n')
+  done < <(printf '%s\n' "$members" | tr ',' '\n')
   say "Total listado: $count | L = contraseña bloqueada; consulta chage -l para expiración."
+  if (( unavailable )); then
+    say 'No se pudo consultar algún estado de contraseña. Ejecuta el listado con sudo para comprobarlo.'
+  fi
 }
 
 suspend_student() {
@@ -117,10 +142,11 @@ remove_student() {
 
 usage() {
   cat <<'EOF'
-Uso: sudo bash usr_mgr.sh [--import usuarios.txt [--dry-run]]
+Uso: sudo bash usr_mgr.sh [--list | --import usuarios.txt [--dry-run]]
      bash usr_mgr.sh --help
 
 Sin argumentos: menú de cuentas Linux SSH/X2Go. Opción 6: importar un TXT.
+--list muestra miembros por grupo principal y suplementario, sin duplicados.
 TXT: un usuario por línea, 3-31 caracteres; minúsculas, números, _ o -.
 Admite líneas vacías, comentarios #, CRLF y nombres duplicados.
 --dry-run valida la lista sin privilegios ni cambios en el sistema.
@@ -208,6 +234,9 @@ import_students() {
 main() {
   case "${1:-}" in
     -h|--help) usage; return 0 ;;
+    --list)
+      [[ $# -eq 1 ]] || { usage; return 1; }
+      list_students; return ;;
     --import)
       [[ $# -eq 2 || ( $# -eq 3 && "$3" == --dry-run ) ]] || { usage; return 1; }
       if [[ "${3:-}" == --dry-run ]]; then import_students "$2" true; return; fi

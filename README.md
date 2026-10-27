@@ -201,6 +201,15 @@ Instala dependencias Python en entornos virtuales, sin conceder sudo a estudiant
 
 ## Administración
 
+Listar alumnos del grupo gestionado (principal o suplementario), sin duplicados:
+
+```bash
+sudo bash usr_mgr.sh --list
+```
+
+Si el gestor estaba abierto durante una actualización, sal con `0` y vuelve a
+ejecutarlo para cargar la versión actual.
+
 En el laboratorio, agregar, listar, suspender, reactivar o eliminar cuentas:
 
 ```bash

@@ -133,6 +133,13 @@ password privately; never distribute the class TSV.
 The same student/device also needs its own WireGuard peer profile from the VPN
 administrator. usr_mgr.sh does not generate WireGuard keys or register peers.
 
+List managed students without opening the menu:
+    sudo bash usr_mgr.sh --list
+
+Listing includes primary and supplementary members of alumnosvpn, once each.
+Unavailable password status is reported without interrupting the list. After
+updating the script, exit any already-open manager and start it again.
+
 Interactive account manager:
     sudo bash usr_mgr.sh
 

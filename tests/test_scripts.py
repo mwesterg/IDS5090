@@ -39,6 +39,83 @@ class Scripts(unittest.TestCase):
                     self.assertIn("Usuarios únicos válidos: 2", result.stdout)
                     self.assertEqual(result.stdout.count("  alumno01\n"), 1)
 
+    def test_list_includes_last_member_and_single_member(self):
+        for members, expected in (("alumno01,alumno001", ["alumno01", "alumno001"]),
+                                  ("alumno001", ["alumno001"]), ("", [])):
+            with self.subTest(members=members):
+                code = r'''
+set -euo pipefail
+source "$1/usr_mgr.sh"
+MEMBERS="$2"
+getent() {
+  if [[ "$1" == group ]]; then printf '%s:x:1001:%s\n' "$GROUP" "$MEMBERS"; fi
+}
+id() { return 0; }
+passwd() { printf '%s P 2026-10-27 0 99999 7 -1\n' "$2"; }
+list_students
+'''
+                result = self.run_bash(code, ROOT, members)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                for user in expected:
+                    self.assertRegex(result.stdout, rf"(?m)^{user}\s+contraseña=P$")
+                if expected:
+                    self.assertIn(f"Total listado: {len(expected)} |", result.stdout)
+                else:
+                    self.assertIn("No hay cuentas registradas", result.stdout)
+
+
+    def test_list_merges_primary_group_and_survives_unreadable_status(self):
+        code = r'''
+set -euo pipefail
+source "$1/usr_mgr.sh"
+getent() {
+  if [[ "$1" == group ]]; then
+    printf '%s:x:1001:student01,staleuser,student01\n' "$GROUP"
+  else
+    printf '%s\n' 'student01:x:1001:1001::/home/student01:/bin/bash' \
+      'student02:x:1002:1001::/home/student02:/bin/bash' \
+      'administrator:x:1000:1000::/home/administrator:/bin/bash'
+  fi
+}
+id() { [[ "$1" != staleuser ]]; }
+passwd() {
+  [[ "$2" != student01 ]] || return 1
+  printf '%s L 2026-10-27 0 99999 7 -1\n' "$2"
+}
+main --list
+'''
+        result = self.run_bash(code, ROOT)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertRegex(result.stdout, r"(?m)^student01\s+contraseña=no disponible$")
+        self.assertRegex(result.stdout, r"(?m)^student02\s+contraseña=L$")
+        self.assertRegex(result.stdout, r"(?m)^staleuser\s+contraseña=sin cuenta$")
+        self.assertEqual(result.stdout.count("student01"), 1)
+        self.assertNotIn("administrator", result.stdout)
+        self.assertIn("Total listado: 3 |", result.stdout)
+        self.assertIn("sudo", result.stdout)
+
+
+    def test_list_includes_primary_only_members(self):
+        code = r'''
+set -euo pipefail
+source "$1/usr_mgr.sh"
+getent() {
+  if [[ "$1" == group ]]; then
+    printf '%s:x:1001:\n' "$GROUP"
+  else
+    printf '%s\n' 'student02:x:1002:1001::/home/student02:/bin/bash'
+  fi
+}
+id() { return 0; }
+passwd() { printf '%s P 2026-10-27 0 99999 7 -1\n' "$2"; }
+list_students
+'''
+        result = self.run_bash(code, ROOT)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertRegex(result.stdout, r"(?m)^student02\s+contraseña=P$")
+        self.assertIn("Total listado: 1 |", result.stdout)
+
+
     def test_import_creates_private_credentials_and_skips_existing(self):
         with tempfile.TemporaryDirectory() as temp:
             code = r'''
