@@ -1,0 +1,12 @@
+# TEMPLATE ONLY. Each student/device needs its OWN key and unique VPN address.
+# The public server must register the matching public key/address as a peer.
+[Interface]
+PrivateKey = REPLACE_WITH_THIS_DEVICE_PRIVATE_KEY
+Address = 10.66.0.10/32
+
+[Peer]
+PublicKey = REPLACE_WITH_PUBLIC_SERVER_PUBLIC_KEY
+Endpoint = REPLACE_WITH_PUBLIC_SERVER_HOST:51820
+# Route only the real lab VPN address unless the administrator specifies more.
+AllowedIPs = 10.66.0.2/32
+PersistentKeepalive = 25

@@ -7,44 +7,69 @@ there. Your laptop displays the desktop; the server performs the computation.
 
 1. INFORMATION FROM YOUR ADMINISTRATOR
 --------------------------------------
-Obtain your individual .ovpn profile, its private-key passphrase, your lab Linux
-username/password, the lab SSH host-key fingerprint and the support contact.
-These are private credentials; do not share your profile or passwords.
-The public server is the VPN endpoint. The X2Go destination is the lab PC at
-10.77.0.2, not the public server. No OpenVPN account website login is needed.
+The planned connection method is WireGuard VPN + X2Go. The administrator is
+still preparing the actual VPN profiles; examples in the repository are not
+usable credentials and access is not yet verified.
+
+Obtain your individual WireGuard .conf file, your lab Linux username/password,
+the lab's actual WireGuard VPN IP, its SSH host-key fingerprint, and the support
+contact. Each device needs its own assigned VPN address and key. Do not share
+or reuse the lab's configuration or another student's configuration.
+
+    Lab WireGuard VPN IP: _____________________________
+    Linux username: ___________________________________
+    Initial Linux password: delivered privately
+    SSH fingerprint: __________________________________
+    Administrator/support contact: mwestermeyer@udec.cl
+    GPU schedule: _____________________________________
+
+The public server is the VPN endpoint. The X2Go destination is the LAB PC's
+assigned VPN IP. The administrator provides this address after VPN setup.
+
+WireGuard uses the key in your profile to authenticate the VPN; X2Go uses your
+Linux username/password.
 
 2. INSTALL THE CLIENT APPLICATIONS
 ----------------------------------
-Install an OpenVPN-compatible client and X2Go Client on your own computer.
-Use your administrator's supported OpenVPN client for your OS; OpenVPN Connect
-is available from https://openvpn.net/client/.
-X2Go instructions: https://wiki.x2go.org/doku.php/doc:installation:x2goclient
+Install WireGuard for your operating system from:
+    https://www.wireguard.com/install/
+Install X2Go Client using:
+    https://wiki.x2go.org/doku.php/doc:installation:x2goclient
 On macOS follow X2Go's XQuartz requirements before connecting.
-On Ubuntu/Debian, OpenVPN and X2Go Client are available as packages:
 
+On Ubuntu/Debian, on YOUR computer:
     sudo apt update
-    sudo apt install openvpn x2goclient
+    sudo apt install wireguard-tools x2goclient
 
-These commands are for your own computer, not the lab PC.
+If the assigned profile contains DNS settings, ask your administrator which
+resolver integration or network-manager client to use on your Linux system.
+Do not run server installation scripts on your own computer.
 
-3. CONNECT OPENVPN
--------------------
-Import your individual .ovpn file into the OpenVPN client and connect.
-Enter the VPN private-key passphrase supplied by the administrator if prompted.
-On Linux, you can also connect from a terminal with:
+3. CONNECT WIREGUARD
+--------------------
+On Windows/macOS, open WireGuard, import your OWN assigned .conf file as a
+new tunnel and activate it. Follow the administrator's instructions for your
+client version. Keep the profile private: it includes your VPN private key.
 
-    sudo openvpn --config /path/to/YOUR_PROFILE.ovpn
+On Linux with an administrator-approved wg-quick profile:
+    sudo wg-quick up /secure/path/student01.conf
 
-Keep that process running while using X2Go. Confirm that the client reports
-that it connected successfully. OpenVPN does not replace your normal Internet
-connection in this setup. Leave the VPN connected while using the lab.
+The example filename is a placeholder; use your actual file. Its basename
+becomes the Linux interface name and must be at most 15 characters. Keep
+WireGuard connected while using X2Go. A client saying the interface is active
+does not prove the public server is reachable: look for a recent handshake.
+If the tunnel has no handshake or X2Go cannot reach the lab, contact support.
+
+The intended class profiles route access to the lab through the VPN. Confirm
+with the administrator if your profile also changes Internet or DNS routing.
+Do not edit assigned addresses, keys or AllowedIPs without coordination.
 
 4. CREATE YOUR X2GO SESSION
 ---------------------------
 Open X2Go Client and create a new session. Enter:
 
     Session name: IDS Lab (or another name you recognize)
-    Host:         the lab PC VPN IP (10.77.0.2) supplied by the administrator
+    Host:         the actual lab WireGuard VPN IP supplied by the administrator
     Login:        your assigned Linux username
     SSH port:     22
     Session type: XFCE
@@ -57,7 +82,7 @@ host-key fingerprint with the administrator's trusted copy before accepting.
 If a saved key unexpectedly changes later, contact the administrator before
 accepting the replacement.
 
-Enter your Linux password when prompted. It is separate from your VPN private-key passphrase.
+Enter your Linux password when prompted. WireGuard does not use this Linux password.
 The remote XFCE desktop should appear.
 
 5. CHECK YOUR ACCOUNT AND GPU ACCESS
@@ -93,17 +118,17 @@ automatically permission to use all available memory. Stop only your own jobs.
 If you need to copy files, use an SFTP client with:
 
     Protocol: SFTP
-    Host:     the same lab PC VPN IP (10.77.0.2)
+    Host:     the same lab WireGuard VPN IP used for X2Go
     Port:     22
     Username: your Linux username
     Password: your Linux password
 
 On a computer with the scp command, an example upload is:
 
-    scp training.py YOUR_USERNAME@10.77.0.2:~/
+    scp training.py YOUR_USERNAME@LAB_WG_IP:~/
 
-Replace YOUR_USERNAME with your assigned Linux username. Run this
-upload command on your own computer, where training.py is stored. OpenVPN
+Replace YOUR_USERNAME and LAB_WG_IP with your assigned username and lab VPN IP. Run this
+upload command on your own computer, where training.py is stored. WireGuard
 must be connected. Do not send the whole class your password to share files.
 
 7. FINISH OR RESUME YOUR SESSION
@@ -118,17 +143,22 @@ connection is not a guarantee that a training job stopped, or that it will
 survive a reboot. Save model checkpoints and follow the course's instructions
 for long-running jobs.
 
-To reconnect, connect OpenVPN first, then open the saved X2Go session. Resume
+To reconnect, connect WireGuard first, then open the saved X2Go session. Resume
 your existing desktop when offered instead of creating unnecessary sessions.
 
+To stop a Linux wg-quick tunnel when finished:
+    sudo wg-quick down /secure/path/student01.conf
+On Windows/macOS use the WireGuard client's deactivate action. Disconnecting
+the VPN does not guarantee that server-side training jobs have stopped.
+
 To change your Linux password, run passwd in the remote terminal and follow
-its prompts. This changes only the Linux password, not your VPN private-key passphrase.
+its prompts. This changes only the Linux password, not the keys in your WireGuard profile.
 
 8. IF SOMETHING GOES WRONG
 --------------------------
 Connection timeout:
-  Confirm your Internet connection, that OpenVPN is connected, that you
-  imported your own profile, and that the X2Go host is 10.77.0.2.
+  Confirm your Internet connection, that WireGuard has a recent handshake, that you
+  imported your own profile, and that the X2Go host is the assigned lab WireGuard IP.
   Ask whether the server is online and your access is still active.
 
 Incorrect password / authentication failure:
@@ -153,6 +183,7 @@ the approximate time, the step that failed, and the exact error text. Do not
 include passwords, private keys or invitation links in a public report.
 
 Official references:
-  https://openvpn.net/client/
+  https://www.wireguard.com/install/
+  https://www.wireguard.com/quickstart/
   https://wiki.x2go.org/doku.php/doc:installation:x2goclient
   https://wiki.x2go.org/doku.php/doc:usage:x2goclient

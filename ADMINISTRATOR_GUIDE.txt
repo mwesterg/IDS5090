@@ -1,64 +1,173 @@
-IDS LAB - ADMINISTRATOR GUIDE
-=============================
+IDS LAB - ADMINISTRATOR GUIDE (WIREGUARD)
+========================================
 
-Current deployment: public OpenVPN hub + outbound lab PC VPN client.
-Tailscale is blocked on the institutional network.
+Lab administrator contact: mwestermeyer@udec.cl
 
-Follow HUB_DEPLOYMENT.md for the complete installation and migration procedure.
-Read the firewall and subnet requirements before running the installers.
+Planned deployment: existing public WireGuard server, dedicated outbound lab
+peer, individual student peers, and SSH/X2Go/XFCE on the GPU lab PC.
 
-PUBLIC SERVER (Ubuntu 22.04/24.04 / Debian 11+, OpenVPN 2.5+):
-    sudo bash install_hub.sh init 152.74.19.95 443 tcp
-    sudo bash install_hub.sh add-student alumno01
+Status: the real WireGuard configuration is still pending. No tunnel or real
+VPN address has been activated or verified by this change. Keep the lab locally
+accessible while changing network access.
 
-Use a real public IP/DNS name and a free, reachable port. TCP 443 carries OpenVPN,
-not HTTPS; the institution must permit that traffic. The hub issues certificates
-only; no student Linux accounts or GPU software are installed there.
+1. PREPARE THE LAB NOW
+----------------------
+On Pop!_OS/Ubuntu 22.04/24.04, in a normal administrator terminal:
 
-Transfer only /root/ids-vpn-profiles/labpc.ovpn securely to the lab PC.
-Keep the CA, private keys and other students' profiles private.
-
-LAB PC (Pop!_OS/Ubuntu 22.04/24.04):
     cd ~/IDS_remote
-    sudo bash install_lab.sh /secure/path/labpc.ovpn
+    sudo bash install_wireguard.sh --prepare
+
+This installs dependencies. It does not install a profile, start WireGuard or
+change the student SSH network. Package installation may start distribution
+SSH/X2Go services. No NVIDIA/CUDA/PyTorch changes are made.
+
+WIREGUARD_DEPLOYMENT.md contains the full deployment, topology, firewall and
+migration procedure. WireGuard uses UDP: verify outbound reachability to the
+real public endpoint from the lab. No lab router port forwarding is required.
+
+2. INFORMATION REQUIRED BEFORE INSTALLATION
+-------------------------------------------
+In the public server's WireGuard GUI, create a dedicated lab peer and export
+its .conf privately. Create a separate peer/profile for every student device.
+The lab installers do not require public-server shell access. Record:
+
+    Public server endpoint/UDP port: ___________________
+    Lab VPN IP: _______________________________________
+    Student VPN source CIDR seen by lab SSH: ___________
+    Lab interface name: ids-wg (default)
+    Student peer provisioning/revocation contact: ______
+
+Do not reuse a personal or student profile for the lab. Every device needs a
+unique key/address registered on the public server. Transfer completed .conf
+files privately, outside Git; never share the lab's private key with students.
+wireguard/*.conf.example files contain placeholders for review, not credentials.
+
+The public server must permit forwarding between student and lab peers, with
+return traffic. Configure matching AllowedIPs for each peer and the lab's reply
+route. Coordinate IP forwarding and firewall rules with its administrator.
+If the hub applies SNAT, the SSH source CIDR must match the translated source,
+not the original student addresses. The lab installer cannot configure the hub. If the GUI has no forwarding or
+firewall controls, ask its administrator to verify existing rules. Opening the
+WireGuard endpoint port alone does not prove student-to-lab reachability.
+
+3. VALIDATE AND INSTALL AFTER THE PROFILE ARRIVES
+------------------------------------------------
+The following commands contain placeholders; replace both the file path and
+REAL_STUDENT_SOURCE_CIDR with the assigned values:
+
+    bash install_wireguard.sh --check-config /secure/lab.conf --student-network REAL_STUDENT_SOURCE_CIDR
+    sudo bash install_wireguard.sh --install /secure/lab.conf --student-network REAL_STUDENT_SOURCE_CIDR
+
+Validation requires no root and does not print keys or execute config commands.
+It checks basic profile structure, keys, endpoints and student return-route
+coverage. Full-tunnel routes, hooks/custom routing and SaveConfig=true require
+manual review; do not strip them blindly. DNS settings need resolvconf integration.
+Set PersistentKeepalive=25 on the lab's hub peer for idle NAT reachability unless
+the VPN administrator specifies another interval.
+
+Installation stores /etc/wireguard/ids-wg.conf root-owned, mode 600. It refuses
+a different existing profile and refuses a live target interface. It prepares
+SSH/X2Go, migrates only an unchanged installer-generated student SSH snippet
+with a backup, and prepares Linux account access. Custom SSH policies
+require review. The new source CIDR can affect access over old VPN paths.
+The installer does NOT start or enable WireGuard and does not change firewall
+policy. Inspect old VPN routes for overlaps before activating this one.
+
+4. ACTIVATE LOCALLY AND VERIFY
+------------------------------
+Only after reviewing the supplied profile, routing and firewall rules:
+
+    sudo systemctl enable --now wg-quick@ids-wg
+    sudo bash install_wireguard.sh --status
+
+For another interface name, pass --interface NAME at installation/status and
+use wg-quick@NAME. No recent handshake makes --status return a nonzero result.
+A recent handshake proves only connectivity to the hub. Test student -> lab
+TCP 22 from outside the lab LAN before offering access to the class.
+
+The lab firewall must allow the actual student source CIDR to the lab VPN IP
+on TCP 22 over this WireGuard interface. Preserve administrative access.
+The public hub needs a forwarding rule; allowing SSH to the hub itself is not
+enough. Isolate students from each other according to the lab's policy.
+
+Diagnostics:
+    sudo systemctl status wg-quick@ids-wg ssh x2goserver --no-pager
+    sudo journalctl -u wg-quick@ids-wg -n 50 --no-pager
+    ip -brief address
+    ip route
+    sudo sshd -t
+
+To stop this tunnel, including boot activation:
+    sudo systemctl disable --now wg-quick@ids-wg
+
+Stopping it does not restore old SSH rules or remove the private profile. Do
+not publish full profiles, wg showconf output or wg dump output: they may expose
+private/preshared keys. Do not stop unrelated VPN services without checking users.
+
+5. CREATE AND MANAGE LINUX ACCOUNTS ON THE LAB
+---------------------------------------------
     cp usuarios.example.txt usuarios.txt
-    # Edit usuarios.txt with the real usernames.
-    bash usr_mgr.sh --linux-only --import usuarios.txt --dry-run
-    sudo bash usr_mgr.sh --linux-only --import usuarios.txt
+    # Edit usuarios.txt: one real username per line; no passwords/emails.
+    bash usr_mgr.sh --import usuarios.txt --dry-run
+    sudo bash usr_mgr.sh --import usuarios.txt
 
-The lab PC is 10.77.0.2 on the VPN. Students connect to the hub with their own
-OpenVPN profiles, then use X2Go: host 10.77.0.2, SSH port 22, session XFCE and
-their lab Linux username/password. The VPN key passphrase and Linux password
-are separate. Deliver credentials individually; never distribute the TSV.
+Usernames start with a lowercase letter and use 3-31 lowercase letters/digits,
+underscores or hyphens. Blank lines, # comments, CRLF and
+duplicate names are supported. Preview validates the list only. Real import
+checks conflicts before creating accounts and skips existing managed accounts.
+Skipped accounts are not reactivated and their passwords are not reset.
 
-Existing student accounts remain on the lab. The lab installer backs up and
-migrates only an unchanged installer-generated Tailscale SSH snippet. Custom
-SSH configurations require manual review. It does not stop existing VPNs;
-retire unused Tailscale/local OpenVPN services after testing the new path.
+Accounts have private HOME and no sudo. Generated passwords are stored in a
+private credenciales-*.tsv file under /root/credenciales-alumnos/, with columns
+usuario, contraseña, estado. Inspect the printed file path with sudo less. Each user gets an initial password row and,
+if provisioning succeeds, a separate creado completion row. A pending record
+alone does not prove the account was created. Deliver only each user's own
+password privately; never distribute the class TSV.
 
-Operate accounts on the LAB PC:
-    sudo bash usr_mgr.sh --linux-only
+The same student/device also needs its own WireGuard peer profile from the VPN
+administrator. usr_mgr.sh does not generate WireGuard keys or register peers.
 
-Menu: 1 add, 2 list, 3 suspend, 4 reactivate, 5 delete/archive, 6 import, 0 exit.
-Passwords can be reset with sudo passwd USERNAME. The original credentials TSV
-is not updated by later password changes. Homes are archived on deletion.
+Interactive account manager:
+    sudo bash usr_mgr.sh
 
-Revoke VPN access separately on the PUBLIC HUB:
-    sudo bash install_hub.sh revoke alumno01
+Spanish menu: 1 add, 2 list, 3 suspend, 4 reactivate, 5 delete/archive,
+6 import TXT, 0 exit. Deletion requires typing ELIMINAR USERNAME exactly.
+Homes are archived under /root/archivos-alumnos/. To reset a Linux password:
+    sudo passwd ACTUAL_USERNAME
 
-This republishes the CRL and restarts the hub, disconnecting all clients briefly.
-Linux suspension alone does not revoke VPN access. VPN revocation alone does
-not suspend a Linux account.
+The original import TSV is not updated after password changes. Suspension
+terminates the student's Linux sessions/processes. Withdrawal also requires
+removing the student's WireGuard public-key peer on the public server, using
+the WireGuard GUI; save the change so it persists. Removing a VPN peer alone
+does not terminate existing training processes on the lab.
 
-Renew the 180-day CRL before expiry (CA passphrase required):
-    sudo bash install_hub.sh renew-crl
-    sudo bash install_hub.sh status
+6. HANDOVER AND GPU VALIDATION
+------------------------------
+Provide each student only their own VPN profile and Linux credentials, the
+actual lab VPN IP, SSH port 22, session XFCE, support contact and GPU schedule.
+Give them CLIENT_GUIDE.txt plus a trusted SSH host-key fingerprint:
 
-Keep encrypted off-server CA backups. Do not initialize another CA to repair
-an existing installation. Consult HUB_DEPLOYMENT.md for partial-failure recovery,
-firewall persistence, logs, client isolation and end-to-end validation.
+    sudo ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
 
-Before class use, test two students from outside the lab LAN. Verify their own
-HOME/DISPLAY, SSH host-key fingerprints, SFTP and GPU execution using README.md.
-The installers do not install NVIDIA/CUDA/PyTorch, allocate GPU quotas or schedule
-jobs. Keep the lab powered on and coordinate shared GPU usage.
+For a different negotiated host-key type, supply its corresponding fingerprint.
+Test two students outside the LAN with their own HOME/DISPLAY, SFTP and X2Go.
+Run nvidia-smi inside their sessions. Then, in the course Python environment:
+
+    python -c "import torch; assert torch.cuda.is_available(); x=torch.randn(256,256,device='cuda',requires_grad=True); (x@x).square().mean().backward(); torch.cuda.synchronize(); print(torch.cuda.get_device_name(0))"
+
+PyTorch must already be installed in that environment. If nvidia-smi fails on
+the host, resolve driver/device access before announcing GPU training. Check
+RTX 5090 compatibility in the actual framework; the installers do not do it.
+There are no GPU/VRAM/RAM/disk quotas or scheduling: coordinate class usage.
+Keep the lab powered on, avoid automatic sleep during class, and back up student
+data according to the course's policy.
+
+Root-free tests (account mutations are simulated):
+    python3 -m unittest discover -s tests -v
+
+Use WIREGUARD_DEPLOYMENT.md for the complete deployment procedure.
+
+Official references:
+    https://www.wireguard.com/quickstart/
+    https://www.wireguard.com/install/
+    https://git.zx2c4.com/wireguard-tools/tree/src/man/wg-quick.8

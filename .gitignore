@@ -9,9 +9,9 @@ __pycache__/
 usuarios.txt
 users.txt
 credenciales-*.tsv
-*.ovpn
 *.key
-*.pem
-*.p12
-*.pfx
-pki/
+
+# WireGuard profiles and backups contain private/preshared keys.
+*.conf
+*.conf.*
+!*.conf.example
