@@ -82,6 +82,9 @@ Open X2Go Client and create a new session. Enter:
     SSH port:     22
     Session type: XFCE
 
+Select XFCE explicitly in the client's Session type selector, even if another
+desktop type is preselected. This is a client setting for every saved session.
+
 Use password authentication. Leave SSH key, proxy and automatic-login options
 off unless the administrator specifically instructs you otherwise.
 

@@ -10,6 +10,12 @@ fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 read_var() { local __name="$1" __prompt="$2"; IFS= read -r -p "$__prompt" "$__name"; }
 valid_name() { [[ "$1" =~ ^[a-z][a-z0-9_-]{2,30}$ ]]; }
 
+print_x2go_settings() {
+  printf '\nConexión X2Go: servidor 10.8.0.100 | puerto SSH 22\n'
+  printf 'Tipo de sesión: XFCE (seleccionarlo explícitamente en X2Go Client).\n'
+  printf 'Conecta primero el perfil WireGuard del alumno.\n'
+}
+
 require_environment() {
   [[ "$EUID" -eq 0 ]] || fail 'Ejecuta con sudo.'
   local command
@@ -41,12 +47,14 @@ add_student() {
     say 'Falló la preparación; cuenta bloqueada. Revisa antes de reactivar.'
     return
   fi
-  say "Alumno creado: $u. Conexión X2Go: IP WireGuard del laboratorio, puerto 22, XFCE."
+  say "Alumno creado: $u."
+  print_x2go_settings
   say 'Contraseña inicial: igual al usuario, en minúsculas y sin espacios. Puede cambiarla con passwd.'
 }
 
 list_students() {
   say "=== ALUMNOS DEL GRUPO $GROUP ==="
+  print_x2go_settings
   local entry gid accounts members u count=0 pass status unavailable=0
   if ! entry="$(getent group "$GROUP")"; then
     say "El grupo $GROUP no existe o no se puede consultar."
@@ -231,6 +239,7 @@ import_students() {
     added=$((added + 1))
   done
   say "Importación terminada: creados=$added, omitidos=$skipped. Credenciales: $credentials"
+  print_x2go_settings
   say 'Entrega a cada alumno su propia contraseña y la IP WireGuard del laboratorio.'
   say 'La contraseña inicial es su usuario. Puede cambiarla con passwd.'
 }

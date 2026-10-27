@@ -56,6 +56,8 @@ list_students
 '''
                 result = self.run_bash(code, ROOT, members)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn("servidor 10.8.0.100 | puerto SSH 22", result.stdout)
+                self.assertIn("Tipo de sesión: XFCE", result.stdout)
                 for user in expected:
                     self.assertRegex(result.stdout, rf"(?m)^{user}\s+contraseña=P$")
                 if expected:
@@ -144,6 +146,7 @@ import_students "$2/users.txt"
 '''
             result = self.run_bash(code, ROOT, temp)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("Tipo de sesión: XFCE", result.stdout)
 
     def test_interactive_creation_uses_username_as_initial_password(self):
         with tempfile.TemporaryDirectory() as temp:
