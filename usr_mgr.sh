@@ -13,7 +13,7 @@ valid_name() { [[ "$1" =~ ^[a-z][a-z0-9_-]{2,30}$ ]]; }
 require_environment() {
   [[ "$EUID" -eq 0 ]] || fail 'Ejecuta con sudo.'
   local command
-  for command in useradd openssl chpasswd flock; do
+  for command in useradd chpasswd flock; do
     command -v "$command" >/dev/null || fail "Falta $command."
   done
   groupadd -f "$GROUP"
@@ -36,12 +36,13 @@ add_student() {
     return
   fi
   useradd -m -U -s /bin/bash -G "$GROUP" "$u" || return
-  if ! chmod 700 "/home/$u" || ! passwd "$u"; then
+  if ! chmod 700 "/home/$u" || ! printf '%s:%s\n' "$u" "$u" | chpasswd; then
     usermod -L -e 1 "$u" || true
     say 'Falló la preparación; cuenta bloqueada. Revisa antes de reactivar.'
     return
   fi
   say "Alumno creado: $u. Conexión X2Go: IP WireGuard del laboratorio, puerto 22, XFCE."
+  say 'Contraseña inicial: igual al usuario, en minúsculas y sin espacios. Puede cambiarla con passwd.'
 }
 
 list_students() {
@@ -150,6 +151,7 @@ Sin argumentos: menú de cuentas Linux SSH/X2Go. Opción 6: importar un TXT.
 TXT: un usuario por línea, 3-31 caracteres; minúsculas, números, _ o -.
 Admite líneas vacías, comentarios #, CRLF y nombres duplicados.
 --dry-run valida la lista sin privilegios ni cambios en el sistema.
+Contraseña inicial por defecto: el nombre de usuario, en minúsculas y sin espacios.
 La importación guarda contraseñas individuales en TSV privados bajo
 /root/credenciales-alumnos. No crea ni elimina peers de WireGuard;
 adminístralos por separado en la GUI del servidor público.
@@ -212,7 +214,8 @@ import_students() {
   chmod 600 "$credentials" || return 1
   say "Contraseñas privadas en $credentials (no se muestran en pantalla)."
   for u in "${pending[@]}"; do
-    password="$(openssl rand -hex 18)" || return 1
+    # valid_name requires lowercase usernames without whitespace.
+    password="$u"
     printf '%s\t%s\tpendiente_verificar\n' "$u" "$password" >> "$credentials" || return 1
     if ! useradd -m -U -s /bin/bash -G "$GROUP" "$u"; then
       say "Falló useradd para $u. Revisa $credentials antes de reintentar."
@@ -229,6 +232,7 @@ import_students() {
   done
   say "Importación terminada: creados=$added, omitidos=$skipped. Credenciales: $credentials"
   say 'Entrega a cada alumno su propia contraseña y la IP WireGuard del laboratorio.'
+  say 'La contraseña inicial es su usuario. Puede cambiarla con passwd.'
 }
 
 main() {

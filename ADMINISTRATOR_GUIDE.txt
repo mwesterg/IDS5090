@@ -123,7 +123,12 @@ duplicate names are supported. Preview validates the list only. Real import
 checks conflicts before creating accounts and skips existing managed accounts.
 Skipped accounts are not reactivated and their passwords are not reset.
 
-Accounts have private HOME and no sudo. Generated passwords are stored in a
+Accounts have private HOME and no sudo. The default initial password is the
+username in lowercase without spaces (student01 -> student01), for both the
+interactive add option and TXT imports. Usernames already require lowercase
+and no spaces. This predictable password can be changed by the student using
+passwd; existing account passwords are not reset by this change.
+Import passwords are stored in a
 private credenciales-*.tsv file under /root/credenciales-alumnos/, with columns
 usuario, contraseña, estado. Inspect the printed file path with sudo less. Each user gets an initial password row and,
 if provisioning succeeds, a separate creado completion row. A pending record

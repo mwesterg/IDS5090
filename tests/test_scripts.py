@@ -63,7 +63,6 @@ list_students
                 else:
                     self.assertIn("No hay cuentas registradas", result.stdout)
 
-
     def test_list_merges_primary_group_and_survives_unreadable_status(self):
         code = r'''
 set -euo pipefail
@@ -94,7 +93,6 @@ main --list
         self.assertIn("Total listado: 3 |", result.stdout)
         self.assertIn("sudo", result.stdout)
 
-
     def test_list_includes_primary_only_members(self):
         code = r'''
 set -euo pipefail
@@ -115,7 +113,6 @@ list_students
         self.assertRegex(result.stdout, r"(?m)^student02\s+contraseña=P$")
         self.assertIn("Total listado: 1 |", result.stdout)
 
-
     def test_import_creates_private_credentials_and_skips_existing(self):
         with tempfile.TemporaryDirectory() as temp:
             code = r'''
@@ -128,17 +125,40 @@ is_managed_user() { return 1; }
 id() { return 1; }
 getent() { return 1; }
 ACCOUNT_LOG="$2/accounts.log"
+PASSWORD_LOG="$2/passwords.log"
 useradd() { echo created >> "$ACCOUNT_LOG"; }
 chmod() { if [[ "$*" == '700 /home/'* ]]; then return 0; fi; command chmod "$@"; }
-chpasswd() { cat > /dev/null; }
+chpasswd() { cat >> "$PASSWORD_LOG"; }
 import_students "$2/users.txt"
 [[ $(wc -l < "$ACCOUNT_LOG") == 2 ]]
 credentials=("$CREDENTIAL_DIR"/credenciales-*.tsv)
 [[ $(stat -c %a "${credentials[0]}") == 600 ]]
 [[ $(awk -F '\t' '$3 == "creado" {n++} END {print n}' "${credentials[0]}") == 2 ]]
+grep -Fxq 'student01:student01' "$PASSWORD_LOG"
+grep -Fxq 'student02:student02' "$PASSWORD_LOG"
+awk -F '\t' '$3 == "pendiente_verificar" && $1 != $2 {exit 1}' "${credentials[0]}"
 is_managed_user() { return 0; }
 import_students "$2/users.txt"
 [[ $(wc -l < "$ACCOUNT_LOG") == 2 ]]
+[[ $(wc -l < "$PASSWORD_LOG") == 2 ]]
+'''
+            result = self.run_bash(code, ROOT, temp)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_interactive_creation_uses_username_as_initial_password(self):
+        with tempfile.TemporaryDirectory() as temp:
+            code = r'''
+set -euo pipefail
+source "$1/usr_mgr.sh"
+PASSWORD_LOG="$2/password"
+read_var() { printf -v "$1" '%s' student03; }
+id() { return 1; }
+getent() { return 1; }
+useradd() { return 0; }
+chmod() { return 0; }
+chpasswd() { cat > "$PASSWORD_LOG"; }
+add_student
+grep -Fxq 'student03:student03' "$PASSWORD_LOG"
 '''
             result = self.run_bash(code, ROOT, temp)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

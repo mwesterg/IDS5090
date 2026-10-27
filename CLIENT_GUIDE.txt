@@ -17,7 +17,7 @@ or reuse the lab's configuration or another student's configuration.
 
     Lab WireGuard VPN IP: 10.8.0.100
     Linux username: ___________________________________
-    Initial Linux password: delivered privately
+    Initial Linux password: your username, lowercase, without spaces
     SSH fingerprint: __________________________________
     Administrator/support contact: mwestermeyer@udec.cl
     GPU schedule: _____________________________________
@@ -32,7 +32,10 @@ as 10.8.0.0/24. The administrator supplies this setting; do not replace your
 student profile with the GPU PC's profile.
 
 WireGuard uses the key in your profile to authenticate the VPN; X2Go uses your
-Linux username/password.
+Linux username/password. For newly created accounts, the initial Linux password
+is the username in lowercase without spaces (student01 -> student01). It is
+predictable; change it with passwd inside your remote terminal. If your password
+was already changed or the administrator reset it, use the current password.
 
 2. INSTALL THE CLIENT APPLICATIONS
 ----------------------------------

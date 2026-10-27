@@ -138,7 +138,11 @@ El archivo tiene un usuario por línea, de 3 a 31 caracteres: empieza con letra
 minúscula y continúa con minúsculas, números, guiones o guiones bajos. Se permiten
 comentarios, líneas vacías y CRLF; se omiten repetidos.
 
-Las cuentas se crean sin sudo y con HOME privado. Las contraseñas se guardan en
+Las cuentas se crean sin sudo y con HOME privado. La contraseña inicial es el
+nombre de usuario en minúsculas y sin espacios, tanto al crear un alumno desde
+el menú como al importar un TXT (ejemplo: `alumno01` → `alumno01`). Es predecible;
+el alumno puede cambiarla con `passwd`. Las cuentas existentes no se modifican.
+Las contraseñas se guardan en
 archivos privados `credenciales-*.tsv` bajo `/root/credenciales-alumnos/`. El gestor
 omite cuentas ya gestionadas sin resetearlas ni reactivarlas.
 
