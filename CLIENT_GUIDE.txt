@@ -88,10 +88,10 @@ After activating WireGuard, open a terminal on your computer and run:
 
 Replace NameLastname with your assigned username, preserving capitals. Example:
 
-    ssh JavierPina@10.8.0.100
+    ssh RocioPinones@10.8.0.100
 
 Enter your Linux password when prompted. The default initial password for
-JavierPina is javierpina. Characters are not displayed while typing a password.
+RocioPinones is rociopinones. Characters are not displayed while typing a password.
 Use this terminal for code, commands and training in your assigned environment.
 Run exit to close the SSH session when finished.
 
@@ -107,7 +107,7 @@ Open X2Go Client and create a new session. Enter:
 
     Session name: IDS Lab (or another name you recognize)
     Host:         10.8.0.100
-    Login:        your assigned NameLastname (example: JavierPina)
+    Login:        your assigned NameLastname (example: RocioPinones)
     SSH port:     22
     Session type: XFCE
 
