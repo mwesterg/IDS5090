@@ -6,6 +6,12 @@ Lab administrator contact: mwestermeyer@udec.cl
 Deployment: existing public WireGuard server, dedicated outbound lab
 peer, individual student peers, and SSH/X2Go/XFCE on the GPU lab PC.
 
+SSH is the recommended access method for daily work and training. The XFCE GUI
+remains available at any time through X2Go with the same account and files,
+provided the lab and WireGuard connection are online. Give students both access
+methods and include the SSH command with their connection instructions:
+    ssh NameLastname@10.8.0.100
+
 Fixed lab IPv4: 10.8.0.100 (X2Go and SFTP, TCP 22).
 Public WireGuard endpoint: 152.74.19.95:10275/UDP.
 Private lab profile: ~/IDS_remote/IDS_5090.conf, excluded from Git.

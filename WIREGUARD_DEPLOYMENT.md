@@ -7,6 +7,10 @@ The public VPN endpoint is **152.74.19.95:10275/UDP**. The private local profile
 `IDS_5090.conf` has been supplied and updated to `10.8.0.100/32`. Runtime address,
 handshake and student-to-lab access must still be checked after reconnecting.
 
+SSH is the recommended way to work on the lab (`ssh NameLastname@10.8.0.100`).
+The XFCE GUI is always available through X2Go when needed, using the same Linux
+account/files. Both methods require the lab and the WireGuard connection online.
+
 ```text
 Student: individual WireGuard peer + X2Go
                  |

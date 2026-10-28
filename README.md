@@ -167,23 +167,34 @@ conservando las plantillas.
 
 ## Conexión de los estudiantes
 
-1. Importar/activar el perfil personal en WireGuard.
-2. Crear una sesión en X2Go Client:
+**SSH es la forma recomendada de uso** para trabajar con código, ejecutar comandos
+y entrenar modelos. El escritorio gráfico XFCE está siempre disponible mediante
+X2Go cuando se necesite, con la misma cuenta y archivos. Ambos accesos requieren
+que el servidor y la conexión WireGuard estén activos.
 
-   | Campo | Valor |
-   | --- | --- |
-   | Host | `10.8.0.100` |
-   | Puerto SSH | `22` |
-   | Usuario | Cuenta Linux asignada |
-   | Tipo de sesión | `XFCE` |
-   | Autenticación | Contraseña Linux |
+Primero importa/activa el perfil personal en WireGuard. Después, desde una terminal
+del equipo del estudiante, usa el nombre asignado respetando sus mayúsculas:
 
-3. Verificar la huella SSH entregada por el administrador.
-4. Mantener WireGuard conectado durante la sesión.
+```bash
+ssh NombreApellido@10.8.0.100
+# Ejemplo: ssh JavierPina@10.8.0.100
+```
 
-El destino X2Go y SFTP es `10.8.0.100:22`. La IP pública se usa para WireGuard.
-La [guía de clientes](CLIENT_GUIDE.txt) incluye instalación, transferencia de
-archivos, suspensión de sesiones y diagnóstico.
+La contraseña inicial es el usuario en minúsculas (ejemplo: `javierpina`).
+Para utilizar la GUI, crea una sesión X2Go con estos datos:
+
+| Campo | Valor |
+| --- | --- |
+| Host | `10.8.0.100` |
+| Puerto SSH | `22` |
+| Usuario | `NombreApellido`, respetando mayúsculas |
+| Tipo de sesión | `XFCE` (seleccionarlo explícitamente) |
+| Autenticación | Contraseña Linux |
+
+Mantén WireGuard conectado durante el uso de SSH, X2Go o SFTP. Todos se conectan
+al laboratorio en `10.8.0.100:22`; la IP pública se usa para establecer WireGuard.
+La [guía de clientes](CLIENT_GUIDE.txt) incluye SSH recomendado, GUI disponible,
+transferencia de archivos, sesiones y diagnóstico.
 
 ## Uso de la GPU
 

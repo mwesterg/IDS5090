@@ -2,12 +2,15 @@ IDS LAB SERVER - STUDENT CONNECTION GUIDE
 =========================================
 
 Use this guide after the administrator confirms your access is ready.
-You will connect to your own Linux desktop on the lab PC and run training
-there. Your laptop displays the desktop; the server performs the computation.
+SSH is the recommended way to use the lab for daily work, running commands
+and training models. The XFCE graphical desktop is always available through
+X2Go when you need it; GUI access does not require a separate account.
+Both methods use the same Linux account and run computation on the lab PC.
+The server and your WireGuard connection must be online for either method.
 
 1. INFORMATION FROM YOUR ADMINISTRATOR
 --------------------------------------
-The connection method is WireGuard VPN + X2Go. The fixed GPU PC address is
+Connect WireGuard first, then use SSH (recommended) or X2Go (GUI available anytime). The fixed GPU PC address is
 10.8.0.100. Each student still needs their own VPN profile and Linux account
 from the administrator before connecting.
 
@@ -34,20 +37,24 @@ WireGuard uses the key in your profile to authenticate the VPN; X2Go uses your
 Linux username/password. Usernames use NameLastname without spaces, preserving
 the capital letters (JavierPina). The default initial password is always the same
 username in lowercase (javierpina). Type the username with its exact capitalization
-in X2Go and SFTP. Existing accounts keep their current username and password;
+in SSH, X2Go and SFTP. Existing accounts keep their current username and password;
 if your password has been changed, use the current password.
 
 2. INSTALL THE CLIENT APPLICATIONS
 ----------------------------------
 Install WireGuard for your operating system from:
     https://www.wireguard.com/install/
-Install X2Go Client using:
+Use an SSH client on your computer for the recommended terminal access.
+To use the available graphical desktop, install X2Go Client using:
     https://wiki.x2go.org/doku.php/doc:installation:x2goclient
 On macOS follow X2Go's XQuartz requirements before connecting.
 
 On Ubuntu/Debian, on YOUR computer:
     sudo apt update
-    sudo apt install wireguard-tools x2goclient
+    sudo apt install wireguard-tools openssh-client
+
+For optional graphical access, also install:
+    sudo apt install x2goclient
 
 If the assigned profile contains DNS settings, ask your administrator which
 resolver integration or network-manager client to use on your Linux system.
@@ -64,7 +71,7 @@ On Linux with an administrator-approved wg-quick profile:
 
 The example filename is a placeholder; use your actual file. Its basename
 becomes the Linux interface name and must be at most 15 characters. Keep
-WireGuard connected while using X2Go. A client saying the interface is active
+WireGuard connected while using SSH or X2Go. A client saying the interface is active
 does not prove the public server is reachable: look for a recent handshake.
 If the tunnel has no handshake or X2Go cannot reach the lab, contact support.
 
@@ -72,8 +79,29 @@ The intended class profiles route access to the lab through the VPN. Confirm
 with the administrator if your profile also changes Internet or DNS routing.
 Do not edit assigned addresses, keys or AllowedIPs without coordination.
 
-4. CREATE YOUR X2GO SESSION
----------------------------
+4. CONNECT WITH SSH (RECOMMENDED)
+---------------------------------
+After activating WireGuard, open a terminal on your computer and run:
+
+    ssh NameLastname@10.8.0.100
+
+Replace NameLastname with your assigned username, preserving capitals. Example:
+
+    ssh JavierPina@10.8.0.100
+
+Enter your Linux password when prompted. The default initial password for
+JavierPina is javierpina. Characters are not displayed while typing a password.
+Use this terminal for code, commands and training in your assigned environment.
+Run exit to close the SSH session when finished.
+
+You can always open the XFCE desktop through X2Go using the next section when
+you need graphical applications. SSH and X2Go access the same files/account.
+For long-running training, save checkpoints and follow the lab's instructions
+for keeping jobs running after disconnecting; a shell session alone is not a
+job scheduler.
+
+5. OPEN THE GRAPHICAL DESKTOP WITH X2GO
+--------------------------------------
 Open X2Go Client and create a new session. Enter:
 
     Session name: IDS Lab (or another name you recognize)
@@ -93,9 +121,9 @@ Save the session and open it.
 Enter your Linux password when prompted. WireGuard does not use this Linux password.
 The remote XFCE desktop should appear.
 
-5. CHECK YOUR ACCOUNT AND GPU ACCESS
+6. CHECK YOUR ACCOUNT AND GPU ACCESS
 ------------------------------------
-Open a terminal inside the remote desktop and run:
+In your SSH terminal, or a terminal inside the remote desktop, run:
 
     whoami
     echo "$HOME"
@@ -121,7 +149,7 @@ The GPU is shared. Follow the booking rules, check current usage with
 nvidia-smi, and ask before starting a large job. An idle-looking GPU is not
 automatically permission to use all available memory. Stop only your own jobs.
 
-6. TRANSFER FILES
+7. TRANSFER FILES
 -----------------
 If you need to copy files, use an SFTP client with:
 
@@ -139,7 +167,7 @@ Replace YOUR_USERNAME with your assigned Linux username. Run this
 upload command on your own computer, where training.py is stored. WireGuard
 must be connected. Do not send the whole class your password to share files.
 
-7. FINISH OR RESUME YOUR SESSION
+8. FINISH OR RESUME YOUR SESSION
 --------------------------------
 Save your work before disconnecting. Use X2Go's Suspend option if you intend
 to resume the same desktop. Suspending a desktop does not stop training or
@@ -162,7 +190,7 @@ the VPN does not guarantee that server-side training jobs have stopped.
 To change your Linux password, run passwd in the remote terminal and follow
 its prompts. This changes only the Linux password, not the keys in your WireGuard profile.
 
-8. IF SOMETHING GOES WRONG
+9. IF SOMETHING GOES WRONG
 --------------------------
 Connection timeout:
   Confirm your Internet connection, that WireGuard has a recent handshake, that you
