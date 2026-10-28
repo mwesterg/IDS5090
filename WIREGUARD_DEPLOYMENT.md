@@ -246,8 +246,10 @@ sudo bash usr_mgr.sh --import usuarios.txt
 Each student also needs a separately registered WireGuard peer, unique key and
 address from the public server's WireGuard GUI. The user manager does not generate those
 profiles or modify the hub. Distribute each student's own VPN profile and Linux
-credentials privately. New Linux accounts use the username in lowercase without
-spaces as their initial password, for both interactive creation and imports.
+credentials privately. Enter usernames as `NameLastname` (e.g. `JavierPina`),
+without spaces and preserving capitalization. New Linux accounts use that
+username in lowercase (e.g. `javierpina`), without spaces, as their initial
+password, for both interactive creation and imports.
 Students can change it with `passwd`; existing passwords are not reset. Import
 passwords live under `/root/credenciales-alumnos/`.
 

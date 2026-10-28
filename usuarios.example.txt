@@ -1,5 +1,5 @@
-# Un usuario por línea; reemplaza estos ejemplos por los alumnos reales.
+# Un usuario NombreApellido por línea, sin espacios; conserva las mayúsculas.
 # Se omiten líneas vacías y comentarios. No incluyas contraseñas.
-alumno01
-alumno02
-alumno03
+JavierPina
+MariaLopez
+AnaTorres

@@ -122,29 +122,34 @@ set -euo pipefail
 source "$1/usr_mgr.sh"
 CREDENTIAL_DIR="$2/credentials"
 mkdir -p "$CREDENTIAL_DIR"
-printf 'student01\nstudent02\n' > "$2/users.txt"
+FIRST="$3"
+SECOND="${3}Two"
+THIRD="${3}Three"
+printf '%s\n' "$FIRST" "$SECOND" "$THIRD" > "$2/users.txt"
 is_managed_user() { return 1; }
 id() { return 1; }
 getent() { return 1; }
 ACCOUNT_LOG="$2/accounts.log"
 PASSWORD_LOG="$2/passwords.log"
-useradd() { echo created >> "$ACCOUNT_LOG"; }
+useradd() { echo "$*" >> "$ACCOUNT_LOG"; }
 chmod() { if [[ "$*" == '700 /home/'* ]]; then return 0; fi; command chmod "$@"; }
 chpasswd() { cat >> "$PASSWORD_LOG"; }
 import_students "$2/users.txt"
-[[ $(wc -l < "$ACCOUNT_LOG") == 2 ]]
+[[ $(wc -l < "$ACCOUNT_LOG") == 3 ]]
 credentials=("$CREDENTIAL_DIR"/credenciales-*.tsv)
 [[ $(stat -c %a "${credentials[0]}") == 600 ]]
-[[ $(awk -F '\t' '$3 == "creado" {n++} END {print n}' "${credentials[0]}") == 2 ]]
-grep -Fxq 'student01:student01' "$PASSWORD_LOG"
-grep -Fxq 'student02:student02' "$PASSWORD_LOG"
-awk -F '\t' '$3 == "pendiente_verificar" && $1 != $2 {exit 1}' "${credentials[0]}"
+[[ $(awk -F '\t' '$3 == "creado" {n++} END {print n}' "${credentials[0]}") == 3 ]]
+grep -Fxq "$FIRST:${FIRST,,}" "$PASSWORD_LOG"
+grep -Fxq "$SECOND:${SECOND,,}" "$PASSWORD_LOG"
+grep -Fxq "$THIRD:${THIRD,,}" "$PASSWORD_LOG"
+grep -q -- " $FIRST$" "$ACCOUNT_LOG"
+awk -F '\t' '$3 == "pendiente_verificar" && tolower($1) != $2 {exit 1}' "${credentials[0]}"
 is_managed_user() { return 0; }
 import_students "$2/users.txt"
-[[ $(wc -l < "$ACCOUNT_LOG") == 2 ]]
-[[ $(wc -l < "$PASSWORD_LOG") == 2 ]]
+[[ $(wc -l < "$ACCOUNT_LOG") == 3 ]]
+[[ $(wc -l < "$PASSWORD_LOG") == 3 ]]
 '''
-            result = self.run_bash(code, ROOT, temp)
+            result = self.run_bash(code, ROOT, temp, "Test" + Path(temp).name)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("Tipo de sesión: XFCE", result.stdout)
 
@@ -154,16 +159,17 @@ import_students "$2/users.txt"
 set -euo pipefail
 source "$1/usr_mgr.sh"
 PASSWORD_LOG="$2/password"
-read_var() { printf -v "$1" '%s' student03; }
+TEST_USER="$3"
+read_var() { printf -v "$1" '%s' "$TEST_USER"; }
 id() { return 1; }
 getent() { return 1; }
 useradd() { return 0; }
 chmod() { return 0; }
 chpasswd() { cat > "$PASSWORD_LOG"; }
 add_student
-grep -Fxq 'student03:student03' "$PASSWORD_LOG"
+grep -Fxq "$TEST_USER:${TEST_USER,,}" "$PASSWORD_LOG"
 '''
-            result = self.run_bash(code, ROOT, temp)
+            result = self.run_bash(code, ROOT, temp, "Test" + Path(temp).name)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_ssh_source_restriction(self):

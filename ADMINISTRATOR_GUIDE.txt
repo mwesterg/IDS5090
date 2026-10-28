@@ -117,17 +117,19 @@ private/preshared keys. Do not stop unrelated VPN services without checking user
     bash usr_mgr.sh --import usuarios.txt --dry-run
     sudo bash usr_mgr.sh --import usuarios.txt
 
-Usernames start with a lowercase letter and use 3-31 lowercase letters/digits,
-underscores or hyphens. Blank lines, # comments, CRLF and
+Enter usernames as NameLastname, for example JavierPina, without spaces.
+Capitalization is preserved. Names have 3-31 characters and start with a letter;
+letters, digits, underscores and hyphens are accepted. Existing lowercase
+usernames remain valid. Blank lines, # comments, CRLF and
 duplicate names are supported. Preview validates the list only. Real import
 checks conflicts before creating accounts and skips existing managed accounts.
 Skipped accounts are not reactivated and their passwords are not reset.
 
 Accounts have private HOME and no sudo. The default initial password is the
-username in lowercase without spaces (student01 -> student01), for both the
-interactive add option and TXT imports. Usernames already require lowercase
-and no spaces. This predictable password can be changed by the student using
-passwd; existing account passwords are not reset by this change.
+username in lowercase without spaces (JavierPina -> javierpina), for both the
+interactive add option and TXT imports. The login keeps its original capitals;
+only the initial password is converted to lowercase. Students can change it
+using passwd; existing account passwords are not reset by this change.
 Import passwords are stored in a
 private credenciales-*.tsv file under /root/credenciales-alumnos/, with columns
 usuario, contraseña, estado. Inspect the printed file path with sudo less. Each user gets an initial password row and,

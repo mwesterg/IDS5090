@@ -8,7 +8,7 @@ source "$SCRIPT_DIR/lib/remote_access.sh"
 say() { printf '\n%s\n' "$*"; }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 read_var() { local __name="$1" __prompt="$2"; IFS= read -r -p "$__prompt" "$__name"; }
-valid_name() { [[ "$1" =~ ^[a-z][a-z0-9_-]{2,30}$ ]]; }
+valid_name() { [[ "$1" =~ ^[A-Za-z][A-Za-z0-9_-]{2,30}$ ]]; }
 
 print_x2go_settings() {
   printf '\nConexión X2Go: servidor 10.8.0.100 | puerto SSH 22\n'
@@ -35,14 +35,14 @@ is_managed_user() {
 add_student() {
   local u
   say '=== AGREGAR ALUMNO ==='
-  read_var u 'Usuario nuevo (ej. alumno01): '
-  valid_name "$u" || { say 'Nombre inválido: minúsculas, números, _ o -, longitud 3-31.'; return; }
+  read_var u 'Usuario nuevo en formato NombreApellido (ej. JavierPina): '
+  valid_name "$u" || { say 'Nombre inválido: letras, números, _ o -, sin espacios; longitud 3-31.'; return; }
   if id "$u" &>/dev/null || getent group "$u" >/dev/null || [[ -e "/home/$u" || -L "/home/$u" ]]; then
     say 'Ya existe esa cuenta, grupo o HOME. Revisa antes de crear el alumno.'
     return
   fi
   useradd -m -U -s /bin/bash -G "$GROUP" "$u" || return
-  if ! chmod 700 "/home/$u" || ! printf '%s:%s\n' "$u" "$u" | chpasswd; then
+  if ! chmod 700 "/home/$u" || ! printf '%s:%s\n' "$u" "${u,,}" | chpasswd; then
     usermod -L -e 1 "$u" || true
     say 'Falló la preparación; cuenta bloqueada. Revisa antes de reactivar.'
     return
@@ -156,7 +156,8 @@ Uso: sudo bash usr_mgr.sh [--list | --import usuarios.txt [--dry-run]]
 
 Sin argumentos: menú de cuentas Linux SSH/X2Go. Opción 6: importar un TXT.
 --list muestra miembros por grupo principal y suplementario, sin duplicados.
-TXT: un usuario por línea, 3-31 caracteres; minúsculas, números, _ o -.
+TXT: un usuario por línea en formato NombreApellido (ej. JavierPina), sin espacios.
+Se conserva la capitalización; 3-31 caracteres, letras, números, _ o -.
 Admite líneas vacías, comentarios #, CRLF y nombres duplicados.
 --dry-run valida la lista sin privilegios ni cambios en el sistema.
 Contraseña inicial por defecto: el nombre de usuario, en minúsculas y sin espacios.
@@ -222,8 +223,8 @@ import_students() {
   chmod 600 "$credentials" || return 1
   say "Contraseñas privadas en $credentials (no se muestran en pantalla)."
   for u in "${pending[@]}"; do
-    # valid_name requires lowercase usernames without whitespace.
-    password="$u"
+    # Preserve the username's case; only the initial password is lowercase.
+    password="${u,,}"
     printf '%s\t%s\tpendiente_verificar\n' "$u" "$password" >> "$credentials" || return 1
     if ! useradd -m -U -s /bin/bash -G "$GROUP" "$u"; then
       say "Falló useradd para $u. Revisa $credentials antes de reintentar."
@@ -241,7 +242,7 @@ import_students() {
   say "Importación terminada: creados=$added, omitidos=$skipped. Credenciales: $credentials"
   print_x2go_settings
   say 'Entrega a cada alumno su propia contraseña y la IP WireGuard del laboratorio.'
-  say 'La contraseña inicial es su usuario. Puede cambiarla con passwd.'
+  say 'La contraseña inicial es su usuario en minúsculas. Puede cambiarla con passwd.'
 }
 
 main() {

@@ -11,14 +11,13 @@ The connection method is WireGuard VPN + X2Go. The fixed GPU PC address is
 10.8.0.100. Each student still needs their own VPN profile and Linux account
 from the administrator before connecting.
 
-Obtain your individual WireGuard .conf file, your lab Linux username/password,
-its SSH host-key fingerprint and the support contact. Each device needs its own assigned VPN address and key. Do not share
-or reuse the lab's configuration or another student's configuration.
+Obtain your individual WireGuard .conf file, your lab Linux username/password
+and the support contact. Each device needs its own assigned VPN address and key.
+Do not share or reuse the lab's configuration or another student's configuration.
 
     Lab WireGuard VPN IP: 10.8.0.100
-    Linux username: ___________________________________
-    Initial Linux password: your username, lowercase, without spaces
-    SSH fingerprint: __________________________________
+    Linux username: NameLastname (example: JavierPina)
+    Initial Linux password: namelastname (example: javierpina)
     Administrator/support contact: mwestermeyer@udec.cl
     GPU schedule: _____________________________________
 
@@ -32,10 +31,11 @@ as 10.8.0.0/24. The administrator supplies this setting; do not replace your
 student profile with the GPU PC's profile.
 
 WireGuard uses the key in your profile to authenticate the VPN; X2Go uses your
-Linux username/password. For newly created accounts, the initial Linux password
-is the username in lowercase without spaces (student01 -> student01). It is
-predictable; change it with passwd inside your remote terminal. If your password
-was already changed or the administrator reset it, use the current password.
+Linux username/password. Usernames use NameLastname without spaces, preserving
+the capital letters (JavierPina). The default initial password is always the same
+username in lowercase (javierpina). Type the username with its exact capitalization
+in X2Go and SFTP. Existing accounts keep their current username and password;
+if your password has been changed, use the current password.
 
 2. INSTALL THE CLIENT APPLICATIONS
 ----------------------------------
@@ -78,7 +78,7 @@ Open X2Go Client and create a new session. Enter:
 
     Session name: IDS Lab (or another name you recognize)
     Host:         10.8.0.100
-    Login:        your assigned Linux username
+    Login:        your assigned NameLastname (example: JavierPina)
     SSH port:     22
     Session type: XFCE
 
@@ -88,10 +88,7 @@ desktop type is preselected. This is a client setting for every saved session.
 Use password authentication. Leave SSH key, proxy and automatic-login options
 off unless the administrator specifically instructs you otherwise.
 
-Save the session and open it. On the first connection, compare the SSH
-host-key fingerprint with the administrator's trusted copy before accepting.
-If a saved key unexpectedly changes later, contact the administrator before
-accepting the replacement.
+Save the session and open it.
 
 Enter your Linux password when prompted. WireGuard does not use this Linux password.
 The remote XFCE desktop should appear.
@@ -131,7 +128,7 @@ If you need to copy files, use an SFTP client with:
     Protocol: SFTP
     Host:     10.8.0.100
     Port:     22
-    Username: your Linux username
+    Username: your NameLastname, preserving capitalization
     Password: your Linux password
 
 On a computer with the scp command, an example upload is:
@@ -173,7 +170,8 @@ Connection timeout:
   Ask whether the server is online and your access is still active.
 
 Incorrect password / authentication failure:
-  Use the Linux username rather than an email address. Check keyboard layout
+  Use your exact NameLastname username (JavierPina, not javierpina) and the
+  lowercase initial password (javierpina), unless changed. Check keyboard layout
   and Caps Lock. Ask the administrator for a reset if needed; do not send
   passwords in a troubleshooting message.
 
