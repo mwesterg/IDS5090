@@ -18,9 +18,10 @@ Obtain your individual WireGuard .conf file, your lab Linux username/password
 and the support contact. Each device needs its own assigned VPN address and key.
 Do not share or reuse the lab's configuration or another student's configuration.
 
+    Example User: Rocío Piñones
     Lab WireGuard VPN IP: 10.8.0.100
-    Linux username: NameLastname (example: JavierPina)
-    Initial Linux password: namelastname (example: javierpina)
+    Linux username: NameLastname (example: RocioPinones)
+    Initial Linux password: namelastname (example: rociopininones)
     Administrator/support contact: mwestermeyer@udec.cl
     GPU schedule: _____________________________________
 
